@@ -135,8 +135,9 @@ const GameCategoriesScreen = () => {
   };
 
   const handleRandomSelection = () => {
-    const shuffled = [...categories].sort(() => 0.5 - Math.random());
-    setSelectedCategories(shuffled.slice(0, 6));
+    if (categories.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * categories.length);
+    setSelectedCategories([categories[randomIndex]]);
   };
 
   const renderCategoryCard = ({ item }) => {

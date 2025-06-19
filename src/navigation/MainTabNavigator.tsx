@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { View, TouchableOpacity, Modal, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Modal, Text, StyleSheet, Alert } from 'react-native';
 // import { useTheme } from '../context/ThemeContext';
 
 import HomeScreen from '../screens/HomeScreen';
+import PlayScreen from '../screens/PlayScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CreateGameScreen from '../screens/CreateGameScreen';
-import GameLogScreen from '../screens/GameLogScreen';
+import GameHistoryScreen from '../screens/GameHistoryScreen';
 
-// Create the bottom tab navigator
 const Tab = createBottomTabNavigator();
+const HomeStack = createNativeStackNavigator();
 
-type HamburgerMenuProps = {
-  visible: boolean;
-  onClose: () => void;
-  onNavigate: (option: 'BuyGame' | 'Profile' | 'Logout') => void;
-};
+// Placeholder: Replace with real logic to get completed games count
+const getCompletedGamesCount = () => 0; // TODO: Replace with real state/storage
 
-const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ visible, onClose, onNavigate }) => (
+const HamburgerMenu: React.FC<any> = ({ visible, onClose, onNavigate }) => (
   <Modal
     visible={visible}
     transparent
@@ -40,6 +39,15 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ visible, onClose, onNavig
     </TouchableOpacity>
   </Modal>
 );
+
+function HomeStackScreen() {
+  return (
+    <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+      <HomeStack.Screen name="Play" component={PlayScreen} />
+    </HomeStack.Navigator>
+  );
+}
 
 const MainTabNavigator = () => {
   // const { isDark } = useTheme();
@@ -97,24 +105,31 @@ const MainTabNavigator = () => {
           headerShown: false,
         })}
       >
-        {/* Home Tab */}
-        <Tab.Screen 
-          name="Home" 
-          component={HomeScreen}
+        <Tab.Screen
+          name="Home"
+          component={HomeStackScreen}
         />
-        {/* Create Game Tab */}
-        <Tab.Screen 
-          name="Create Game" 
+        <Tab.Screen
+          name="Create Game"
           component={CreateGameScreen}
+          listeners={{
+            tabPress: (e) => {
+              if (getCompletedGamesCount() < 15) {
+                e.preventDefault();
+                Alert.alert(
+                  'Complete More Games',
+                  'You need to complete 15 games in Start GameCatogeries before you can create a game.'
+                );
+              }
+            },
+          }}
         />
-        {/* Game Log Tab */}
-        <Tab.Screen 
-          name="Game Log" 
-          component={GameLogScreen}
+        <Tab.Screen
+          name="Game Log"
+          component={GameHistoryScreen}
         />
-        {/* Profile Tab */}
-        <Tab.Screen 
-          name="Profile" 
+        <Tab.Screen
+          name="Profile"
           component={ProfileScreen}
         />
       </Tab.Navigator>
