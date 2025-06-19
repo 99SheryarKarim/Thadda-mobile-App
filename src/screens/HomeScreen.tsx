@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, StatusBar, Modal, Image } from "react-native"
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get("window")
 
 const HomeScreen = () => {
   const [menuVisible, setMenuVisible] = useState(false);
+  const navigation = useNavigation();
 
   const handleMenuOption = (option: 'BuyGame' | 'Profile' | 'Logout') => {
     setMenuVisible(false);
@@ -63,6 +65,7 @@ const HomeScreen = () => {
 
         {/* Hero Section */}
         <View style={styles.heroSection}>
+          <View style={styles.heroGradientBg} />
           <View style={styles.heroContent}>
             <View style={styles.heroText}>
               <Text style={styles.heroTitle}>تجربة مبتكرة تجمع</Text>
@@ -73,7 +76,7 @@ const HomeScreen = () => {
               <Text style={styles.heroDescription}>
                 استمتع بتجربة فريدة من نوعها تجمع بين التقاليد العريقة والحداثة الإبداعية في رحلة ثقافية ملهمة
               </Text>
-              <TouchableOpacity style={styles.ctaButton}>
+              <TouchableOpacity style={styles.ctaButton} onPress={() => navigation.navigate('Play')}>
                 <Text style={styles.ctaButtonText}>ابدأ الآن</Text>
               </TouchableOpacity>
             </View>
@@ -354,52 +357,81 @@ const styles = StyleSheet.create({
 
   // Hero Section Styles
   heroSection: {
-    backgroundColor: "#f1f5f9",
-    paddingVertical: 40,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 50,
     paddingHorizontal: 20,
+    borderRadius: 24,
+    margin: 16,
+    marginTop: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroGradientBg: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+    backgroundColor: 'linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)', // fallback for web
+    // For native, you can use a gradient library if desired
+    opacity: 0.7,
   },
   heroContent: {
-    alignItems: "center",
+    alignItems: 'center',
+    zIndex: 1,
   },
   heroText: {
-    alignItems: "center",
-    textAlign: "center",
+    alignItems: 'center',
+    textAlign: 'center',
+    paddingHorizontal: 10,
   },
   heroTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#1e293b",
-    textAlign: "center",
-    marginBottom: 10,
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#1565C0',
+    textAlign: 'center',
+    marginBottom: 8,
+    marginTop: 8,
+    letterSpacing: 1,
   },
   heroSubtitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#1e293b",
-    textAlign: "center",
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 2,
   },
   highlightText: {
-    color: "#06b6d4",
+    color: '#06b6d4',
+    fontWeight: 'bold',
   },
   heroDescription: {
-    fontSize: 16,
-    color: "#64748b",
-    textAlign: "center",
-    lineHeight: 24,
-    marginVertical: 20,
+    fontSize: 18,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 28,
+    marginVertical: 18,
     paddingHorizontal: 10,
   },
   ctaButton: {
-    backgroundColor: "#06b6d4",
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 10,
+    backgroundColor: '#06b6d4',
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 30,
+    marginTop: 18,
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ctaButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 
   // Features Section Styles
