@@ -10,9 +10,12 @@ import PlayScreen from '../screens/PlayScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CreateGameScreen from '../screens/CreateGameScreen';
 import GameHistoryScreen from '../screens/GameHistoryScreen';
+import CreatedGamesDashboard from '../screens/CreatedGamesDashboard';
+import GameCreationScreen from '../screens/GameCreationScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
+const CreateGameStack = createNativeStackNavigator();
 
 // Placeholder: Replace with real logic to get completed games count
 const getCompletedGamesCount = () => 0; // TODO: Replace with real state/storage
@@ -46,6 +49,15 @@ function HomeStackScreen() {
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
       <HomeStack.Screen name="Play" component={PlayScreen} />
     </HomeStack.Navigator>
+  );
+}
+
+function CreateGameStackScreen() {
+  return (
+    <CreateGameStack.Navigator screenOptions={{ headerShown: false }}>
+      <CreateGameStack.Screen name="CreatedGamesDashboard" component={CreatedGamesDashboard} />
+      <CreateGameStack.Screen name="GameCreationScreen" component={GameCreationScreen} />
+    </CreateGameStack.Navigator>
   );
 }
 
@@ -111,18 +123,7 @@ const MainTabNavigator = () => {
         />
         <Tab.Screen
           name="Create Game"
-          component={CreateGameScreen}
-          listeners={{
-            tabPress: (e) => {
-              if (getCompletedGamesCount() < 15) {
-                e.preventDefault();
-                Alert.alert(
-                  'Complete More Games',
-                  'You need to complete 15 games in Start GameCatogeries before you can create a game.'
-                );
-              }
-            },
-          }}
+          component={CreateGameStackScreen}
         />
         <Tab.Screen
           name="Game Log"
