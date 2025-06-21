@@ -10,11 +10,14 @@ import {
   StatusBar,
   Animated,
   FlatList,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { CreatedGamesContext } from '../context/CreatedGamesContext';
+// import { apiService } from '../services/api'; // Uncomment when you have a real API
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,15 +25,16 @@ const { width, height } = Dimensions.get('window');
 const mockUserStats = {
   users: 0,
   views: 0,
-  currentBalance: 15,
+  currentBalance: 0,
   currency: '$'
 };
 
 const CreatedGamesDashboard = () => {
   const navigation = useNavigation();
-  const { createdGames } = useContext(CreatedGamesContext);
+  const { createdGames, deleteCreatedGame } = useContext(CreatedGamesContext);
   const [userStats, setUserStats] = useState(mockUserStats);
   const [loading, setLoading] = useState(true);
+  const [deletingGameId, setDeletingGameId] = useState(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
 
@@ -75,6 +79,139 @@ const CreatedGamesDashboard = () => {
     console.log('Opening game:', game.title);
     // Navigate to game details/edit screen
   };
+
+  const handleGameShow = (game) => {
+    console.log('Opening game show:', game.name || game.title || 'Unknown Game');
+    // Navigate to game show/details screen
+    navigation.navigate('GameShowScreen', { game });
+  };
+
+  const handleAccreditationRequest = async (game) => {
+    try {
+      // TODO: Replace with actual API call when you have a backend
+      // await apiService.requestAccreditation(game.id);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      Alert.alert(
+        'تم إرسال طلب الاعتماد',
+        'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
+        [{ text: 'حسناً' }]
+      );
+    } catch (error) {
+      console.error('Error requesting accreditation:', error);
+      Alert.alert(
+        'خطأ في إرسال الطلب',
+        'حدث خطأ أثناء إرسال طلب الاعتماد. يرجى المحاولة مرة أخرى.',
+        [{ text: 'حسناً' }]
+      );
+    }
+  };
+
+  const handleDeleteGame = async (game) => {
+    Alert.alert(
+      'تأكيد الحذف',
+      `هل أنت متأكد من حذف اللعبة "${game.title}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`,
+      [
+        {
+          text: 'إلغاء',
+          style: 'cancel',
+        },
+        {
+          text: 'حذف',
+          style: 'destructive',
+          onPress: () => deleteGameFromAPI(game.id),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deleteGameFromAPI = async (gameId) => {
+    try {
+      setDeletingGameId(gameId);
+      
+      // Temporary mock implementation - remove this when you have a real API
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // For now, we'll just remove from local state
+      // TODO: Replace this with actual API call when you have a backend
+      /*
+      // When you have a real API, uncomment the import above and use this:
+      await apiService.deleteGame(gameId);
+      */
+      
+      // Remove from local state
+      deleteCreatedGame(gameId);
+      
+      // Show success message
+      Alert.alert(
+        'تم الحذف بنجاح',
+        'تم حذف اللعبة بنجاح',
+        [{ text: 'حسناً' }]
+      );
+      
+    } catch (error) {
+      console.error('Error deleting game:', error);
+      
+      // Show error message
+      Alert.alert(
+        'خطأ في الحذف',
+        'حدث خطأ أثناء حذف اللعبة. يرجى المحاولة مرة أخرى.',
+        [{ text: 'حسناً' }]
+      );
+    } finally {
+      setDeletingGameId(null);
+    }
+  };
+
+  // Calculate completion status for a game
+  const getGameCompletionStatus = (game) => {
+    if (!game.categories) return { categoriesCompleted: 0, questionsCompleted: 0, isFullyCompleted: false };
+    
+    let categoriesCompleted = 0;
+    let questionsCompleted = 0;
+    
+    game.categories.forEach(category => {
+      // Check if category is complete (has name, image, and at least one question)
+      if (category.name && category.image && Object.keys(category.questions).length > 0) {
+        categoriesCompleted++;
+      }
+      
+      // Count questions in this category
+      questionsCompleted += Object.keys(category.questions).length;
+    });
+    
+    const isFullyCompleted = categoriesCompleted === 6 && questionsCompleted === 36;
+    
+    return {
+      categoriesCompleted,
+      questionsCompleted,
+      isFullyCompleted
+    };
+  };
+
+  // For testing purposes - you can add this sample data to test completion tracking
+  // const sampleCompletedGame = {
+  //   id: 'test-1',
+  //   name: 'لعبة مكتملة',
+  //   description: 'لعبة تجريبية مكتملة',
+  //   categories: Array(6).fill(null).map((_, i) => ({
+  //     id: i + 1,
+  //     name: `فئة ${i + 1}`,
+  //     image: { uri: 'test' },
+  //     questions: {
+  //       100: { question: 'سؤال 1', answer: 'إجابة 1' },
+  //       200: { question: 'سؤال 2', answer: 'إجابة 2' },
+  //       300: { question: 'سؤال 3', answer: 'إجابة 3' },
+  //       400: { question: 'سؤال 4', answer: 'إجابة 4' },
+  //       500: { question: 'سؤال 5', answer: 'إجابة 5' },
+  //       600: { question: 'سؤال 6', answer: 'إجابة 6' },
+  //     }
+  //   }))
+  // };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -125,79 +262,163 @@ const CreatedGamesDashboard = () => {
     </Animated.View>
   );
 
-  const renderGameCard = ({ item, index }) => (
-    <Animated.View
-      style={[
-        styles.gameCard,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }
-      ]}
-    >
-      <TouchableOpacity
-        style={styles.gameCardContent}
-        onPress={() => handleGamePress(item)}
-        activeOpacity={0.8}
+  const renderGameCard = ({ item, index }) => {
+    const completionStatus = getGameCompletionStatus(item);
+    
+    return (
+      <Animated.View
+        style={[
+          styles.gameCard,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          }
+        ]}
       >
-        <LinearGradient
-          colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-          style={styles.gameCardGradient}
+        <TouchableOpacity
+          style={styles.gameCardContent}
+          onPress={() => handleGamePress(item)}
+          activeOpacity={0.8}
         >
-          {/* Game Header */}
-          <View style={styles.gameHeader}>
-            <View style={styles.gameMainInfo}>
-              <Text style={styles.gameTitle}>{item.title}</Text>
-              <Text style={styles.gameDescription}>{item.description}</Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-              <Text style={styles.statusText}>{item.status}</Text>
-            </View>
-          </View>
-
-          {/* Game Categories */}
-          <View style={styles.categoriesContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {item.categories.map((category, idx) => (
-                <View key={idx} style={styles.categoryTag}>
-                  <Text style={styles.categoryText}>{category.name}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Game Stats */}
-          <View style={styles.gameStats}>
-            <View style={styles.gameStatItem}>
-              <Ionicons name="people-outline" size={16} color="#60a5fa" />
-              <Text style={styles.gameStatText}>{item.players} لاعب</Text>
-            </View>
-            <View style={styles.gameStatItem}>
-              <Ionicons name="eye-outline" size={16} color="#10b981" />
-              <Text style={styles.gameStatText}>{item.views} مشاهدة</Text>
-            </View>
-            <View style={styles.gameStatItem}>
-              <Ionicons name="help-circle-outline" size={16} color="#f59e0b" />
-              <Text style={styles.gameStatText}>{item.questions} سؤال</Text>
-            </View>
-          </View>
-
-          {/* Game Footer */}
-          <View style={styles.gameFooter}>
-            <View style={styles.gameMetadata}>
-              <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}>
-                <Text style={styles.difficultyText}>{item.difficulty}</Text>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+            style={styles.gameCardGradient}
+          >
+            {/* Game Header */}
+            <View style={styles.gameHeader}>
+              <View style={styles.gameMainInfo}>
+                <Text style={styles.gameTitle}>{item.name || item.title || 'لعبة بدون عنوان'}</Text>
+                <Text style={styles.gameDescription}>{item.description || 'لا يوجد وصف'}</Text>
               </View>
-              <Text style={styles.gameDate}>{formatDate(item.createdDate)}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+                <Text style={styles.statusText}>{item.status || 'غير محدد'}</Text>
+              </View>
             </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Ionicons name="create-outline" size={16} color="#60a5fa" />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
+
+            {/* Completion Status */}
+            <View style={styles.completionStatusContainer}>
+              <View style={styles.completionItem}>
+                <Ionicons name="layers-outline" size={16} color="#60a5fa" />
+                <Text style={styles.completionText}>
+                  الفئات: {completionStatus.categoriesCompleted}/6
+                </Text>
+              </View>
+              <View style={styles.completionItem}>
+                <Ionicons name="help-circle-outline" size={16} color="#10b981" />
+                <Text style={styles.completionText}>
+                  الأسئلة: {completionStatus.questionsCompleted}/36
+                </Text>
+              </View>
+              {completionStatus.isFullyCompleted && (
+                <View style={styles.completedBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                  <Text style={styles.completedText}>مكتمل</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Game Categories */}
+            <View style={styles.categoriesContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {item.categories && item.categories.map((category, idx) => (
+                  <View key={idx} style={styles.categoryTag}>
+                    <Text style={styles.categoryText}>{category.name}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Game Stats */}
+            <View style={styles.gameStats}>
+              <View style={styles.gameStatItem}>
+                <Ionicons name="people-outline" size={16} color="#60a5fa" />
+                <Text style={styles.gameStatText}>{item.players || 0} لاعب</Text>
+              </View>
+              <View style={styles.gameStatItem}>
+                <Ionicons name="eye-outline" size={16} color="#10b981" />
+                <Text style={styles.gameStatText}>{item.views || 0} مشاهدة</Text>
+              </View>
+              <View style={styles.gameStatItem}>
+                <Ionicons name="help-circle-outline" size={16} color="#f59e0b" />
+                <Text style={styles.gameStatText}>{completionStatus.questionsCompleted} سؤال</Text>
+              </View>
+            </View>
+
+            {/* Game Footer */}
+            <View style={styles.gameFooter}>
+              <View style={styles.gameMetadata}>
+                <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}>
+                  <Text style={styles.difficultyText}>{item.difficulty || 'متوسط'}</Text>
+                </View>
+                <Text style={styles.gameDate}>{formatDate(item.createdAt || item.createdDate)}</Text>
+              </View>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => handleGamePress(item)}
+                >
+                  <Ionicons name="create-outline" size={16} color="#60a5fa" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.deleteButton,
+                    deletingGameId === item.id && styles.deleteButtonDisabled
+                  ]}
+                  onPress={() => handleDeleteGame(item)}
+                  disabled={deletingGameId === item.id}
+                >
+                  {deletingGameId === item.id ? (
+                    <ActivityIndicator size="small" color="#ef4444" />
+                  ) : (
+                    <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Action Buttons Row */}
+            <View style={styles.mainActionButtons}>
+              <TouchableOpacity 
+                style={styles.gameShowButton}
+                onPress={() => handleGameShow(item)}
+              >
+                <LinearGradient
+                  colors={['#60a5fa', '#3b82f6']}
+                  style={styles.gameShowButtonGradient}
+                >
+                  <Ionicons name="play-outline" size={16} color="white" />
+                  <Text style={styles.gameShowButtonText}>عرض اللعبة</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.accreditationButton,
+                  !completionStatus.isFullyCompleted && styles.accreditationButtonDisabled
+                ]}
+                onPress={() => handleAccreditationRequest(item)}
+                disabled={!completionStatus.isFullyCompleted}
+              >
+                <LinearGradient
+                  colors={completionStatus.isFullyCompleted ? ['#10b981', '#059669'] : ['#9ca3af', '#6b7280']}
+                  style={styles.accreditationButtonGradient}
+                >
+                  <Ionicons 
+                    name="shield-checkmark-outline" 
+                    size={16} 
+                    color="white" 
+                  />
+                  <Text style={styles.accreditationButtonText}>
+                    طلب الاعتماد
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   const renderEmptyState = () => (
     <Animated.View 
@@ -577,6 +798,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(96, 165, 250, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonDisabled: {
+    backgroundColor: 'rgba(239, 68, 68, 0.5)',
   },
   emptyState: {
     alignItems: 'center',
@@ -597,6 +834,97 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 20,
+    fontFamily: 'System',
+  },
+  completionStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  completionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  completionText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginLeft: 4,
+    fontFamily: 'System',
+  },
+  completedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: '#10b981',
+    marginLeft: 8,
+  },
+  completedText: {
+    fontSize: 10,
+    color: 'white',
+    fontWeight: '600',
+    fontFamily: 'System',
+  },
+  mainActionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+  },
+  gameShowButton: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    marginRight: 8,
+  },
+  gameShowButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  gameShowButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+    fontFamily: 'System',
+  },
+  accreditationButton: {
+    flex: 1,
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    marginLeft: 8,
+  },
+  accreditationButtonDisabled: {
+    opacity: 0.6,
+  },
+  accreditationButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  accreditationButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
     fontFamily: 'System',
   },
 });
