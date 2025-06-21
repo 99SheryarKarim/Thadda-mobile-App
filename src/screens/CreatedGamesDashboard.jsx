@@ -12,28 +12,148 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { CreatedGamesContext } from '../context/CreatedGamesContext';
-// import { apiService } from '../services/api'; // Uncomment when you have a real API
+import { apiService } from '../services/api'; // Uncomment when you have a real API
+import { USE_MOCK_API } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
 // Mock data for user statistics
 const mockUserStats = {
-  users: 0,
-  views: 0,
-  currentBalance: 0,
+  users: 1250,
+  views: 8900,
+  currentBalance: 150.50,
   currency: '$'
 };
 
+// Mock data for created games
+const mockCreatedGames = [
+  {
+    id: '1',
+    name: 'لعبة الرياضيات',
+    title: 'لعبة الرياضيات',
+    description: 'لعبة تعليمية للرياضيات للمرحلة الابتدائية',
+    status: 'نشطة',
+    createdAt: '2024-01-15T10:30:00Z',
+    categories: [
+      {
+        id: 1,
+        name: 'الجمع والطرح',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'ما هو ناتج 5 + 3؟', answer: '8' },
+          200: { question: 'ما هو ناتج 10 - 4؟', answer: '6' },
+          300: { question: 'ما هو ناتج 7 + 8؟', answer: '15' },
+          400: { question: 'ما هو ناتج 15 - 7؟', answer: '8' },
+          500: { question: 'ما هو ناتج 12 + 9؟', answer: '21' },
+          600: { question: 'ما هو ناتج 20 - 11؟', answer: '9' }
+        }
+      },
+      {
+        id: 2,
+        name: 'الضرب والقسمة',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'ما هو ناتج 4 × 3؟', answer: '12' },
+          200: { question: 'ما هو ناتج 15 ÷ 3؟', answer: '5' },
+          300: { question: 'ما هو ناتج 6 × 7؟', answer: '42' },
+          400: { question: 'ما هو ناتج 24 ÷ 4؟', answer: '6' },
+          500: { question: 'ما هو ناتج 8 × 9؟', answer: '72' },
+          600: { question: 'ما هو ناتج 36 ÷ 6؟', answer: '6' }
+        }
+      },
+      {
+        id: 3,
+        name: 'الأعداد',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'اكتب العدد 25 بالكلمات', answer: 'خمسة وعشرون' },
+          200: { question: 'ما هو العدد الذي يلي 99؟', answer: '100' },
+          300: { question: 'اكتب العدد 150 بالكلمات', answer: 'مائة وخمسون' },
+          400: { question: 'ما هو العدد الذي يسبق 1000؟', answer: '999' },
+          500: { question: 'اكتب العدد 500 بالكلمات', answer: 'خمسمائة' },
+          600: { question: 'ما هو العدد الذي يلي 999؟', answer: '1000' }
+        }
+      },
+      {
+        id: 4,
+        name: 'الهندسة',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'كم ضلع للمربع؟', answer: '4' },
+          200: { question: 'كم ضلع للمثلث؟', answer: '3' },
+          300: { question: 'ما هو محيط المربع الذي طول ضلعه 5 سم؟', answer: '20 سم' },
+          400: { question: 'كم ضلع للدائرة؟', answer: 'لا يوجد' },
+          500: { question: 'ما هو محيط المستطيل الذي طوله 6 سم وعرضه 4 سم؟', answer: '20 سم' },
+          600: { question: 'كم ضلع للخماسي؟', answer: '5' }
+        }
+      },
+      {
+        id: 5,
+        name: 'القياسات',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'كم سنتيمتر في المتر؟', answer: '100' },
+          200: { question: 'كم كيلوجرام في الطن؟', answer: '1000' },
+          300: { question: 'كم لتر في الكوب؟', answer: '250 مل' },
+          400: { question: 'كم دقيقة في الساعة؟', answer: '60' },
+          500: { question: 'كم سنتيمتر في الكيلومتر؟', answer: '100000' },
+          600: { question: 'كم ثانية في الدقيقة؟', answer: '60' }
+        }
+      },
+      {
+        id: 6,
+        name: 'الكسور',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'ما هو الكسر المكافئ لـ 1/2؟', answer: '2/4' },
+          200: { question: 'ما هو ناتج 1/4 + 1/4؟', answer: '1/2' },
+          300: { question: 'ما هو الكسر المكافئ لـ 2/3؟', answer: '4/6' },
+          400: { question: 'ما هو ناتج 3/4 - 1/4؟', answer: '1/2' },
+          500: { question: 'ما هو الكسر المكافئ لـ 3/5؟', answer: '6/10' },
+          600: { question: 'ما هو ناتج 1/3 + 1/3؟', answer: '2/3' }
+        }
+      }
+    ],
+    players: 45,
+    views: 230,
+    difficulty: 'سهل'
+  },
+  {
+    id: '2',
+    name: 'لعبة العلوم',
+    title: 'لعبة العلوم',
+    description: 'لعبة تعليمية للعلوم للمرحلة المتوسطة',
+    status: 'مسودة',
+    createdAt: '2024-01-10T14:20:00Z',
+    categories: [
+      {
+        id: 1,
+        name: 'الفيزياء',
+        image: { uri: 'test' },
+        questions: {
+          100: { question: 'ما هي وحدة قياس القوة؟', answer: 'نيوتن' },
+          200: { question: 'ما هي وحدة قياس الكتلة؟', answer: 'كيلوجرام' }
+        }
+      }
+    ],
+    players: 12,
+    views: 67,
+    difficulty: 'متوسط'
+  }
+];
+
 const CreatedGamesDashboard = () => {
   const navigation = useNavigation();
-  const { createdGames, deleteCreatedGame } = useContext(CreatedGamesContext);
+  const { createdGames, deleteCreatedGame, updateGamesFromAPI } = useContext(CreatedGamesContext);
   const [userStats, setUserStats] = useState(mockUserStats);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [deletingGameId, setDeletingGameId] = useState(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
@@ -61,11 +181,124 @@ const CreatedGamesDashboard = () => {
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setUserStats(mockUserStats);
+      
+      if (USE_MOCK_API) {
+        // Mock implementation for testing
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setUserStats(mockUserStats);
+        
+        // Also set mock games data
+        updateGamesFromAPI(mockCreatedGames);
+      } else {
+        // Real API implementation
+        console.log('Fetching data from API...');
+        
+        // Fetch statistics
+        const statisticsData = await apiService.getGamesStatistics();
+        console.log('Statistics API Response:', statisticsData);
+        
+        // Transform API data to match our expected format
+        const transformedStats = {
+          users: statisticsData.totalGamePlayed || 0,
+          views: statisticsData.totalGameView || 0,
+          currentBalance: statisticsData.totalGameRevenue || 0,
+          currency: statisticsData.currency || '$'
+        };
+        
+        console.log('Transformed Stats:', transformedStats);
+        setUserStats(transformedStats);
+        
+        // Fetch user games
+        try {
+          const userGamesData = await apiService.getUserGames();
+          console.log('User Games API Response:', userGamesData);
+          
+          // Update the context with real games data
+          if (userGamesData && userGamesData.games && Array.isArray(userGamesData.games)) {
+            // Transform the games data to match our expected format
+            const transformedGames = userGamesData.games.map(game => ({
+              id: game.id,
+              name: game.gameName || game.name,
+              title: game.gameName || game.name,
+              description: game.gameDescription || game.description,
+              status: game.status || 'draft',
+              createdAt: game.createdAt || game.createdDate,
+              categories: game.categories || [],
+              players: game.statistics?.players || game.players || 0,
+              views: game.statistics?.views || game.views || 0,
+              difficulty: game.difficulty || 'متوسط'
+            }));
+            
+            // Update the context with real games
+            console.log('Transformed Games:', transformedGames);
+            updateGamesFromAPI(transformedGames);
+          } else if (userGamesData && Array.isArray(userGamesData)) {
+            // Fallback: if the response is directly an array
+            const transformedGames = userGamesData.map(game => ({
+              id: game.id,
+              name: game.gameName || game.name,
+              title: game.gameName || game.name,
+              description: game.gameDescription || game.description,
+              status: game.status || 'draft',
+              createdAt: game.createdAt || game.createdDate,
+              categories: game.categories || [],
+              players: game.statistics?.players || game.players || 0,
+              views: game.statistics?.views || game.views || 0,
+              difficulty: game.difficulty || 'متوسط'
+            }));
+            
+            console.log('Transformed Games (fallback):', transformedGames);
+            updateGamesFromAPI(transformedGames);
+          } else {
+            console.log('No games data found in response:', userGamesData);
+            updateGamesFromAPI([]);
+          }
+        } catch (gamesError) {
+          console.error('Error fetching user games:', gamesError);
+          // Don't show error for games if statistics worked
+        }
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
+      
+      // Check if it's an authentication error
+      const isAuthError = error.message.includes('رأس التفويض مفقود') || 
+                         error.message.includes('Authorization') ||
+                         error.message.includes('401') ||
+                         error.message.includes('403');
+      
+      if (isAuthError) {
+        // Show authentication error
+        Alert.alert(
+          'خطأ في المصادقة',
+          'يجب تسجيل الدخول للوصول إلى البيانات. يرجى تسجيل الدخول أولاً.',
+          [
+            { text: 'حسناً' },
+            { 
+              text: 'تسجيل الدخول', 
+              onPress: () => {
+                // TODO: Navigate to login screen
+                console.log('Navigate to login screen');
+              }
+            }
+          ]
+        );
+      } else {
+        // Show general error message
+        Alert.alert(
+          'خطأ في تحميل البيانات',
+          'حدث خطأ أثناء تحميل الإحصائيات. يرجى المحاولة مرة أخرى.',
+          [{ text: 'حسناً' }]
+        );
+      }
+      
+      // Set fallback data
+      setUserStats({
+        users: 0,
+        views: 0,
+        currentBalance: 0,
+        currency: '$'
+      });
     } finally {
       setLoading(false);
     }
@@ -88,17 +321,28 @@ const CreatedGamesDashboard = () => {
 
   const handleAccreditationRequest = async (game) => {
     try {
-      // TODO: Replace with actual API call when you have a backend
-      // await apiService.requestAccreditation(game.id);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      Alert.alert(
-        'تم إرسال طلب الاعتماد',
-        'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
-        [{ text: 'حسناً' }]
-      );
+      if (USE_MOCK_API) {
+        // TODO: Replace with actual API call when you have a backend
+        // await apiService.updateGameStatus(game.id, 'submitted');
+        
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        Alert.alert(
+          'تم إرسال طلب الاعتماد',
+          'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
+          [{ text: 'حسناً' }]
+        );
+      } else {
+        // Real API implementation - using the website's endpoint
+        await apiService.updateGameStatus(game.id, 'submitted');
+        
+        Alert.alert(
+          'تم إرسال طلب الاعتماد',
+          'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
+          [{ text: 'حسناً' }]
+        );
+      }
     } catch (error) {
       console.error('Error requesting accreditation:', error);
       Alert.alert(
@@ -132,26 +376,41 @@ const CreatedGamesDashboard = () => {
     try {
       setDeletingGameId(gameId);
       
-      // Temporary mock implementation - remove this when you have a real API
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For now, we'll just remove from local state
-      // TODO: Replace this with actual API call when you have a backend
-      /*
-      // When you have a real API, uncomment the import above and use this:
-      await apiService.deleteGame(gameId);
-      */
-      
-      // Remove from local state
-      deleteCreatedGame(gameId);
-      
-      // Show success message
-      Alert.alert(
-        'تم الحذف بنجاح',
-        'تم حذف اللعبة بنجاح',
-        [{ text: 'حسناً' }]
-      );
+      if (USE_MOCK_API) {
+        // Temporary mock implementation - remove this when you have a real API
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // For now, we'll just remove from local state
+        // TODO: Replace this with actual API call when you have a backend
+        /*
+        // When you have a real API, uncomment the import above and use this:
+        await apiService.deleteGame(gameId);
+        */
+        
+        // Remove from local state
+        deleteCreatedGame(gameId);
+        
+        // Show success message
+        Alert.alert(
+          'تم الحذف بنجاح',
+          'تم حذف اللعبة بنجاح',
+          [{ text: 'حسناً' }]
+        );
+      } else {
+        // Real API implementation
+        await apiService.deleteGame(gameId);
+        
+        // Remove from local state
+        deleteCreatedGame(gameId);
+        
+        // Show success message
+        Alert.alert(
+          'تم الحذف بنجاح',
+          'تم حذف اللعبة بنجاح',
+          [{ text: 'حسناً' }]
+        );
+      }
       
     } catch (error) {
       console.error('Error deleting game:', error);
@@ -438,6 +697,12 @@ const CreatedGamesDashboard = () => {
     </Animated.View>
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchUserData();
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#2563eb" />
@@ -476,7 +741,18 @@ const CreatedGamesDashboard = () => {
         </Animated.View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
+          />
+        }
+      >
         {/* Statistics Section */}
         <View style={styles.statisticsSection}>
           <Animated.View 
@@ -490,15 +766,44 @@ const CreatedGamesDashboard = () => {
           >
             <Ionicons name="stats-chart-outline" size={20} color="#374151" />
             <Text style={styles.sectionTitle}>الإحصائيات</Text>
-            <TouchableOpacity style={styles.infoButton}>
-              <Ionicons name="information-circle-outline" size={16} color="#9ca3af" />
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity style={styles.infoButton} onPress={fetchUserData}>
+                <Ionicons name="refresh-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.infoButton} 
+                onPress={() => navigation.navigate('APITestScreen')}
+              >
+                <Ionicons name="bug-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
           </Animated.View>
 
           <View style={styles.statsContainer}>
-            {renderStatCard('trophy-outline', 'المستخدمون', userStats.users, '#f59e0b')}
-            {renderStatCard('eye-outline', 'المشاهدات', userStats.views, '#10b981')}
-            {renderStatCard('wallet-outline', 'الرصيد الحالي', `${userStats.currency}${userStats.currentBalance}`, '#60a5fa')}
+            {loading ? (
+              // Loading state for statistics
+              <>
+                <View style={[styles.statCard, styles.statCardLoading]}>
+                  <ActivityIndicator size="small" color="#60a5fa" />
+                  <Text style={styles.loadingText}>جاري التحميل...</Text>
+                </View>
+                <View style={[styles.statCard, styles.statCardLoading]}>
+                  <ActivityIndicator size="small" color="#10b981" />
+                  <Text style={styles.loadingText}>جاري التحميل...</Text>
+                </View>
+                <View style={[styles.statCard, styles.statCardLoading]}>
+                  <ActivityIndicator size="small" color="#f59e0b" />
+                  <Text style={styles.loadingText}>جاري التحميل...</Text>
+                </View>
+              </>
+            ) : (
+              // Actual statistics data
+              <>
+                {renderStatCard('trophy-outline', 'المستخدمون', userStats.users.toLocaleString(), '#f59e0b')}
+                {renderStatCard('eye-outline', 'المشاهدات', userStats.views.toLocaleString(), '#10b981')}
+                {renderStatCard('wallet-outline', 'الرصيد الحالي', `${userStats.currency}${userStats.currentBalance.toLocaleString()}`, '#60a5fa')}
+              </>
+            )}
           </View>
         </View>
 
@@ -531,6 +836,8 @@ const CreatedGamesDashboard = () => {
               showsVerticalScrollIndicator={false}
               scrollEnabled={false}
               contentContainerStyle={styles.gamesList}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
             />
           ) : (
             renderEmptyState()
@@ -670,8 +977,8 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 8,
+    fontSize: 12,
     color: '#9ca3af',
     fontFamily: 'System',
   },
@@ -926,6 +1233,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
     fontFamily: 'System',
+  },
+  statCardLoading: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  testButton: {
+    marginLeft: 8,
   },
 });
 

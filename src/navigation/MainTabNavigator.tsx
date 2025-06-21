@@ -13,6 +13,7 @@ import GameHistoryScreen from '../screens/GameHistoryScreen';
 import CreatedGamesDashboard from '../screens/CreatedGamesDashboard';
 import GameCreationScreen from '../screens/GameCreationScreen';
 import GameShowScreen from '../screens/GameShowScreen';
+import APITestScreen from '../screens/APITestScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
@@ -59,6 +60,7 @@ function CreateGameStackScreen() {
       <CreateGameStack.Screen name="CreatedGamesDashboard" component={CreatedGamesDashboard} />
       <CreateGameStack.Screen name="GameCreationScreen" component={GameCreationScreen} />
       <CreateGameStack.Screen name="GameShowScreen" component={GameShowScreen} />
+      <CreateGameStack.Screen name="APITestScreen" component={APITestScreen} />
     </CreateGameStack.Navigator>
   );
 }

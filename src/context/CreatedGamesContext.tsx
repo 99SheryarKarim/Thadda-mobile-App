@@ -4,12 +4,14 @@ interface CreatedGamesContextType {
   createdGames: any[];
   addCreatedGame: (game: any) => void;
   deleteCreatedGame: (gameId: string) => void;
+  updateGamesFromAPI: (games: any[]) => void;
 }
 
 export const CreatedGamesContext = createContext<CreatedGamesContextType>({
   createdGames: [],
   addCreatedGame: () => {},
   deleteCreatedGame: () => {},
+  updateGamesFromAPI: () => {},
 });
 
 interface ProviderProps {
@@ -27,8 +29,12 @@ export const CreatedGamesProvider: React.FC<ProviderProps> = ({ children }) => {
     setCreatedGames((prev) => prev.filter(game => game.id !== gameId));
   };
 
+  const updateGamesFromAPI = (games: any[]) => {
+    setCreatedGames(games);
+  };
+
   return (
-    <CreatedGamesContext.Provider value={{ createdGames, addCreatedGame, deleteCreatedGame }}>
+    <CreatedGamesContext.Provider value={{ createdGames, addCreatedGame, deleteCreatedGame, updateGamesFromAPI }}>
       {children}
     </CreatedGamesContext.Provider>
   );
