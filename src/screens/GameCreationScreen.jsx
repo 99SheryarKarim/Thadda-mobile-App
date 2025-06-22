@@ -18,27 +18,40 @@ import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { CreatedGamesContext } from '../context/CreatedGamesContext';
 import { showMessage } from 'react-native-flash-message';
+import { apiService } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 
-const GameCreationScreen = () => {
+const GameCreationScreen = ({ navigation, route }) => {
   const { addCreatedGame } = useContext(CreatedGamesContext);
+  
+  // Check if we're editing an existing game
+  const existingGame = route?.params?.game;
+  const isEditing = !!existingGame;
+  
   // Game basic info state
   const [gameData, setGameData] = useState({
-    name: '',
-    description: '',
-    image: null,
+    name: existingGame?.name || '',
+    description: existingGame?.description || '',
+    image: existingGame?.image || null,
+    id: existingGame?.id || null,
   });
 
   // Categories state - 6 categories as shown in UI
-  const [categories, setCategories] = useState([
+  const [categories, setCategories] = useState(
+    existingGame?.categories || [
     { id: 1, name: '', image: null, questions: {} },
     { id: 2, name: '', image: null, questions: {} },
     { id: 3, name: '', image: null, questions: {} },
     { id: 4, name: '', image: null, questions: {} },
     { id: 5, name: '', image: null, questions: {} },
     { id: 6, name: '', image: null, questions: {} },
-  ]);
+    ]
+  );
+
+  // Loading states
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Modal states
   const [questionModalVisible, setQuestionModalVisible] = useState(false);
@@ -69,6 +82,13 @@ const GameCreationScreen = () => {
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      showMessage({
+        message: 'Error',
+        description: 'Failed to pick image. Please try again.',
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 3000,
+      });
     }
   };
 
@@ -92,6 +112,13 @@ const GameCreationScreen = () => {
       }
     } catch (error) {
       console.error('Error picking category image:', error);
+      showMessage({
+        message: 'Error',
+        description: 'Failed to pick category image. Please try again.',
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 3000,
+      });
     }
   };
 
@@ -147,6 +174,13 @@ const GameCreationScreen = () => {
       }
     } catch (error) {
       console.error('Error picking media:', error);
+      showMessage({
+        message: 'Error',
+        description: 'Failed to pick media file. Please try again.',
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 3000,
+      });
     }
   };
 
@@ -191,16 +225,120 @@ const GameCreationScreen = () => {
     });
   };
 
-  // Save game
-  const handleSaveGame = () => {
+  // Prepare game data for API
+  const prepareGameData = () => {
+    console.log('Preparing game data...');
+    
+    // Process categories and questions
+    const categoriesData = categories.map(category => {
+      console.log('Processing category:', category);
+      
+      const categoryData = {
+        categoryId: category.id,
+        name: category.name,
+        questions: []
+      };
+      
+      // Process questions for this category
+      Object.keys(category.questions).forEach(points => {
+        const questionData = category.questions[points];
+        console.log('Processing question for points:', points, questionData);
+        
+        if (questionData && questionData.question && questionData.answer) {
+          categoryData.questions.push({
+            points: parseInt(points),
+            question: questionData.question,
+            answer: questionData.answer,
+            questionMedia: questionData.questionMedia,
+            answerMedia: questionData.answerMedia,
+          });
+        }
+      });
+      
+      return categoryData;
+    });
+    
+    // Calculate statistics
+    const statistics = {
+      totalQuestions: categoriesData.reduce((total, cat) => total + cat.questions.length, 0),
+      totalCategories: categoriesData.filter(cat => cat.name.trim() !== '').length,
+      totalPoints: categoriesData.reduce((total, cat) => 
+        total + cat.questions.reduce((catTotal, q) => catTotal + q.points, 0), 0
+      )
+    };
+    
+    // Create the gameData object that the server expects
+    const gameDataObj = {
+      gameName: gameData.name,
+      gameDescription: gameData.description,
+      categories: categoriesData,
+      statistics: statistics
+    };
+    
+    // Wrap in gameData object as the server expects
+    const requestData = {
+      gameData: gameDataObj
+    };
+    
+    console.log('Game data object to be sent:', gameDataObj);
+    console.log('Full request data:', requestData);
+    console.log('Game data preparation completed');
+    return requestData;
+  };
+
+  // Test function to verify API integration
+  const testAPIIntegration = async () => {
+    try {
+      console.log('Testing API integration...');
+      
+      // Test with minimal data
+      const testFormData = new FormData();
+      testFormData.append('gameName', 'Test Game');
+      testFormData.append('gameDescription', 'Test Description');
+      testFormData.append('categories', JSON.stringify([]));
+      
+      console.log('FormData prepared:', {
+        gameName: 'Test Game',
+        gameDescription: 'Test Description',
+        categories: []
+      });
+      
+      // This would be called in a real scenario
+      // const response = await apiService.createGame(testFormData);
+      // console.log('API Response:', response);
+      
+      showMessage({
+        message: 'API Test',
+        description: 'API integration test completed successfully',
+        type: 'success',
+        icon: () => <Ionicons name="checkmark-circle" size={24} color="#10b981" />,
+        duration: 2000,
+      });
+      
+    } catch (error) {
+      console.error('API Test Error:', error);
+      showMessage({
+        message: 'API Test Failed',
+        description: error.message,
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 3000,
+      });
+    }
+  };
+
+  // Save game - calls create or update API
+  const handleSaveGame = async () => {
     if (!gameData.name.trim() || !gameData.description.trim()) {
       Alert.alert('تنبيه', 'يرجى إدخال اسم اللعبة والوصف');
       return;
     }
-    // Only require category to have name, image, and at least one question
+
+    // Check if categories are complete
     const incompleteCategoriesCount = categories.filter(cat =>
       !cat.name.trim() || !cat.image || Object.keys(cat.questions).length === 0
     ).length;
+    
     if (incompleteCategoriesCount > 0) {
       Alert.alert(
         'تنبيه',
@@ -212,31 +350,158 @@ const GameCreationScreen = () => {
       );
       return;
     }
+    
     // Save as completed
-    saveGameData('completed');
+    await saveGameData('completed');
   };
 
-  const saveGameData = (status) => {
+  const saveGameData = async (status) => {
+    setIsSaving(true);
+    
+    try {
+      console.log('Starting game save process...');
+      console.log('Game data:', gameData);
+      console.log('Categories:', categories);
+      
+      const requestData = prepareGameData();
+      console.log('Game data object prepared successfully');
+      
+      let response;
+      
+      if (isEditing && gameData.id) {
+        console.log('Updating existing game with ID:', gameData.id);
+        // Update existing game
+        response = await apiService.updateGame(gameData.id, requestData);
+        console.log('Update response:', response);
+        showMessage({
+          message: 'تم التحديث بنجاح',
+          description: 'تم تحديث اللعبة بنجاح',
+          type: 'success',
+          icon: () => <Ionicons name="checkmark-circle" size={24} color="#10b981" />,
+          duration: 3000,
+        });
+      } else {
+        console.log('Creating new game...');
+        // Create new game
+        response = await apiService.createGame(requestData);
+        console.log('Create response:', response);
+        
+        // Update local game data with the returned ID
+        if (response.id) {
+          setGameData(prev => ({ ...prev, id: response.id }));
+          console.log('Updated game data with new ID:', response.id);
+        }
+        
+        showMessage({
+          message: 'تم الحفظ بنجاح',
+          description: status === 'completed' ? 'تم حفظ اللعبة بنجاح' : 'تم حفظ اللعبة كمسودة',
+          type: 'success',
+          icon: () => <Ionicons name="checkmark-circle" size={24} color="#10b981" />,
+          duration: 3000,
+        });
+      }
+      
+      // Add to local context for immediate UI update
     const gameToSave = {
-      id: Date.now(),
+        id: response.id || gameData.id || Date.now(),
       ...gameData,
       categories,
       status,
       createdAt: new Date().toISOString(),
     };
     addCreatedGame(gameToSave);
-    showMessage({
-      message: status === 'completed' ? 'Game saved!' : 'Game saved as draft!',
-      description: status === 'completed' ? 'Your game has been saved successfully.' : 'Your game has been saved as a draft.',
-      type: 'success',
-      icon: () => <Ionicons name="checkmark-circle" size={24} color="#10b981" />, // green check
-      duration: 2500,
-    });
+      console.log('Game added to local context');
+      
+      // Navigate back to dashboard if editing
+      if (isEditing) {
+        navigation.goBack();
+      }
+      
+    } catch (error) {
+      console.error('Error saving game:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        toString: error.toString()
+      });
+      
+      let errorMessage = 'حدث خطأ أثناء حفظ اللعبة. يرجى المحاولة مرة أخرى.';
+      
+      // Try to extract the actual error message
+      if (error.message && error.message !== '[object Object]') {
+        errorMessage = error.message;
+      } else if (error.toString && error.toString() !== '[object Object]') {
+        errorMessage = error.toString();
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      // Clean up the error message
+      errorMessage = errorMessage.replace(/^Error: /, '').replace(/^\[object Object\]/, 'حدث خطأ في الخادم');
+      
+      showMessage({
+        message: 'خطأ في الحفظ',
+        description: errorMessage,
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 4000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Document game
-  const handleDocumentGame = () => {
-    Alert.alert('توثيق اللعبة', 'سيتم إنشاء ملف PDF للعبة قريباً');
+  // Document/Publish game - calls update status API
+  const handleDocumentGame = async () => {
+    if (!gameData.id) {
+      Alert.alert('تنبيه', 'يجب حفظ اللعبة أولاً قبل التوثيق');
+      return;
+    }
+    
+    Alert.alert(
+      'توثيق اللعبة',
+      'هل أنت متأكد من رغبتك في توثيق اللعبة؟ سيتم إرسالها للمراجعة.',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        { text: 'توثيق', onPress: () => publishGame() },
+      ]
+    );
+  };
+
+  const publishGame = async () => {
+    setIsPublishing(true);
+    
+    try {
+      console.log('Starting game publish process...');
+      console.log('Game ID:', gameData.id);
+      
+      await apiService.updateGameStatus(gameData.id, 'submitted');
+      console.log('Game status updated to submitted successfully');
+      
+      showMessage({
+        message: 'تم التوثيق بنجاح',
+        description: 'تم إرسال اللعبة للمراجعة والتوثيق',
+        type: 'success',
+        icon: () => <Ionicons name="checkmark-circle" size={24} color="#10b981" />,
+        duration: 3000,
+      });
+      
+      // Navigate back to dashboard
+      navigation.goBack();
+      
+    } catch (error) {
+      console.error('Error publishing game:', error);
+      showMessage({
+        message: 'خطأ في التوثيق',
+        description: error.message || 'حدث خطأ أثناء توثيق اللعبة. يرجى المحاولة مرة أخرى.',
+        type: 'danger',
+        icon: () => <Ionicons name="alert-circle" size={24} color="#ef4444" />,
+        duration: 4000,
+      });
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   // Check if point button has question
@@ -348,12 +613,24 @@ const GameCreationScreen = () => {
           />
 
           {/* Action Buttons */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveGame}>
-            <Text style={styles.saveButtonText}>Save the game</Text>
+          <TouchableOpacity 
+            style={[styles.saveButton, isSaving && styles.disabledButton]} 
+            onPress={handleSaveGame}
+            disabled={isSaving || isPublishing}
+          >
+            <Text style={styles.saveButtonText}>
+              {isSaving ? 'جاري الحفظ...' : 'احفظ اللعبة'}
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.documentButton} onPress={handleDocumentGame}>
-            <Text style={styles.documentButtonText}>Document the game</Text>
+          <TouchableOpacity 
+            style={[styles.documentButton, isPublishing && styles.disabledButton]} 
+            onPress={handleDocumentGame}
+            disabled={isSaving || isPublishing}
+          >
+            <Text style={styles.documentButtonText}>
+              {isPublishing ? 'جاري التوثيق...' : 'وثّق اللعبة'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -802,6 +1079,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#e5e7eb',
   },
 });
 

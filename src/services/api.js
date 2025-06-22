@@ -48,21 +48,44 @@ class ApiService {
 
   // Helper method to handle API responses
   async handleResponse(response) {
+    console.log('API Response Status:', response.status);
+    console.log('API Response Headers:', response.headers);
+    
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
       
       try {
         const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
+        console.log('Error Response Data:', errorData);
+        
+        // Handle different error response formats
+        if (errorData.error && errorData.error.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else {
+          errorMessage = errorData.detail || errorMessage;
+        }
       } catch (e) {
+        console.log('Could not parse error response as JSON:', e);
         // If we can't parse JSON, use status text
         errorMessage = response.statusText || errorMessage;
       }
       
+      console.log('Throwing error with message:', errorMessage);
       throw new Error(errorMessage);
     }
     
-    return response.json();
+    try {
+      const data = await response.json();
+      console.log('API Response Data:', data);
+      return data;
+    } catch (e) {
+      console.log('Could not parse response as JSON:', e);
+      throw new Error('Invalid response format from server');
+    }
   }
 
   // Get games statistics
@@ -147,37 +170,35 @@ class ApiService {
   // Create a new game
   async createGame(gameData) {
     try {
-      const formData = new FormData();
+      console.log('Creating game with data...');
+      console.log('Game data:', gameData);
       
-      // Add game data
-      formData.append('gameName', gameData.gameName || gameData.name);
-      formData.append('gameDescription', gameData.gameDescription || gameData.description);
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(this.getAuthHeaders()['Authorization'] && {
+          'Authorization': this.getAuthHeaders()['Authorization']
+        }),
+      };
       
-      // Add game image if exists
-      if (gameData.gameImage) {
-        formData.append('gameImage', gameData.gameImage);
-      }
+      console.log('Request headers:', headers);
+      console.log('Request URL:', `${this.baseURL}${API_ENDPOINTS.CREATE_GAME}`);
       
-      // Add categories and questions if they exist
-      if (gameData.categories) {
-        formData.append('categories', JSON.stringify(gameData.categories));
-      }
-
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.CREATE_GAME}`, {
         method: 'POST',
-        headers: {
-          // Don't set Content-Type for FormData, let browser set it
-          ...(this.getAuthHeaders()['Authorization'] && {
-            'Authorization': this.getAuthHeaders()['Authorization']
-          }),
-        },
-        body: formData,
+        headers,
+        body: JSON.stringify(gameData),
         credentials: 'include',
       });
 
+      console.log('Raw response:', response);
       return this.handleResponse(response);
     } catch (error) {
       console.error('API Error - createGame:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       throw error;
     }
   }
@@ -185,29 +206,35 @@ class ApiService {
   // Update a game
   async updateGame(gameId, gameData) {
     try {
-      const formData = new FormData();
+      console.log('Updating game with ID:', gameId);
+      console.log('Game data:', gameData);
       
-      formData.append('gameName', gameData.gameName || gameData.name);
-      formData.append('gameDescription', gameData.gameDescription || gameData.description);
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(this.getAuthHeaders()['Authorization'] && {
+          'Authorization': this.getAuthHeaders()['Authorization']
+        }),
+      };
       
-      if (gameData.gameImage) {
-        formData.append('gameImage', gameData.gameImage);
-      }
-
+      console.log('Request headers:', headers);
+      console.log('Request URL:', `${this.baseURL}${API_ENDPOINTS.UPDATE_GAME}/${gameId}`);
+      
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.UPDATE_GAME}/${gameId}`, {
         method: 'PUT',
-        headers: {
-          ...(this.getAuthHeaders()['Authorization'] && {
-            'Authorization': this.getAuthHeaders()['Authorization']
-          }),
-        },
-        body: formData,
+        headers,
+        body: JSON.stringify(gameData),
         credentials: 'include',
       });
 
+      console.log('Raw response:', response);
       return this.handleResponse(response);
     } catch (error) {
       console.error('API Error - updateGame:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       throw error;
     }
   }
