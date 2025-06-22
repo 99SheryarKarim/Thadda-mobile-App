@@ -13,6 +13,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -228,7 +229,13 @@ const CreatedGamesDashboard = () => {
               description: game.gameDescription || game.description,
               status: game.status || 'draft',
               createdAt: game.createdAt || game.createdDate,
-              categories: game.categories || [],
+              image: game.image || game.gameImage || null,
+              categories: game.categories ? game.categories.map(category => ({
+                id: category.id,
+                name: category.name || category.categoryName,
+                image: category.image || category.categoryImage || null,
+                questions: category.questions || category.questionData || {}
+              })) : [],
               players: game.statistics?.players || game.players || 0,
               views: game.statistics?.views || game.views || 0,
               difficulty: game.difficulty || 'متوسط'
@@ -246,7 +253,13 @@ const CreatedGamesDashboard = () => {
               description: game.gameDescription || game.description,
               status: game.status || 'draft',
               createdAt: game.createdAt || game.createdDate,
-              categories: game.categories || [],
+              image: game.image || game.gameImage || null,
+              categories: game.categories ? game.categories.map(category => ({
+                id: category.id,
+                name: category.name || category.categoryName,
+                image: category.image || category.categoryImage || null,
+                questions: category.questions || category.questionData || {}
+              })) : [],
               players: game.statistics?.players || game.players || 0,
               views: game.statistics?.views || game.views || 0,
               difficulty: game.difficulty || 'متوسط'
@@ -447,22 +460,40 @@ const CreatedGamesDashboard = () => {
 
   // Calculate completion status for a game
   const getGameCompletionStatus = (game) => {
-    if (!game.categories) return { categoriesCompleted: 0, questionsCompleted: 0, isFullyCompleted: false };
+    if (!game.categories || !Array.isArray(game.categories)) {
+      return { categoriesCompleted: 0, questionsCompleted: 0, isFullyCompleted: false };
+    }
     
     let categoriesCompleted = 0;
     let questionsCompleted = 0;
     
     game.categories.forEach(category => {
-      // Check if category is complete (has name, image, and at least one question)
-      if (category.name && category.image && Object.keys(category.questions).length > 0) {
+      // Check if category is complete (has name and at least one question)
+      const hasName = category.name && category.name.trim() !== '';
+      const hasQuestions = category.questions && (
+        (typeof category.questions === 'object' && Object.keys(category.questions).length > 0) ||
+        (Array.isArray(category.questions) && category.questions.length > 0)
+      );
+      
+      if (hasName && hasQuestions) {
         categoriesCompleted++;
       }
       
       // Count questions in this category
-      questionsCompleted += Object.keys(category.questions).length;
+      if (category.questions) {
+        if (typeof category.questions === 'object' && !Array.isArray(category.questions)) {
+          // Questions as object with keys
+          questionsCompleted += Object.keys(category.questions).length;
+        } else if (Array.isArray(category.questions)) {
+          // Questions as array
+          questionsCompleted += category.questions.length;
+        }
+      }
     });
     
     const isFullyCompleted = categoriesCompleted === 6 && questionsCompleted === 36;
+    
+    console.log(`Game ${game.name || game.title}: ${categoriesCompleted} categories, ${questionsCompleted} questions, completed: ${isFullyCompleted}`);
     
     return {
       categoriesCompleted,
@@ -595,8 +626,9 @@ const CreatedGamesDashboard = () => {
               )}
             </View>
 
-            {/* Game Categories */}
+            {/* Basic Categories List */}
             <View style={styles.categoriesContainer}>
+              <Text style={styles.categoriesTitle}>الفئات المضافة:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {item.categories && item.categories.map((category, idx) => (
                   <View key={idx} style={styles.categoryTag}>
@@ -1045,6 +1077,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'System',
   },
+  gameHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gameImageContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f3f4f6',
+  },
+  gameImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -1059,6 +1108,13 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     marginBottom: 12,
   },
+  categoriesTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
   categoryTag: {
     backgroundColor: 'rgba(96, 165, 250, 0.1)',
     paddingHorizontal: 8,
@@ -1071,6 +1127,44 @@ const styles = StyleSheet.create({
     color: '#60a5fa',
     fontWeight: '600',
     fontFamily: 'System',
+  },
+  questionsPreviewContainer: {
+    marginBottom: 12,
+  },
+  questionsPreviewTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  questionPreviewCard: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 8,
+    minWidth: 150,
+    maxWidth: 200,
+  },
+  questionPreviewText: {
+    fontSize: 12,
+    color: '#10b981',
+    fontWeight: '600',
+    fontFamily: 'System',
+    marginBottom: 4,
+  },
+  answerPreviewText: {
+    fontSize: 10,
+    color: '#9ca3af',
+    fontFamily: 'System',
+    marginBottom: 4,
+  },
+  questionImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    marginTop: 4,
   },
   gameStats: {
     flexDirection: 'row',
