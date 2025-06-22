@@ -26,7 +26,13 @@ export const CreatedGamesProvider: React.FC<ProviderProps> = ({ children }) => {
   };
 
   const deleteCreatedGame = (gameId: string) => {
-    setCreatedGames((prev) => prev.filter(game => game.id !== gameId));
+    console.log('Context: Deleting game with ID:', gameId, 'Type:', typeof gameId);
+    setCreatedGames((prev) => {
+      console.log('Context: Previous games count:', prev.length);
+      const filtered = prev.filter(game => String(game.id) !== String(gameId));
+      console.log('Context: Filtered games count:', filtered.length);
+      return filtered;
+    });
   };
 
   const updateGamesFromAPI = (games: any[]) => {

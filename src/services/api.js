@@ -124,12 +124,19 @@ class ApiService {
   // Delete a game
   async deleteGame(gameId) {
     try {
+      console.log('API Service: Deleting game with ID:', gameId);
+      console.log('API Service: Request URL:', `${this.baseURL}${API_ENDPOINTS.DELETE_GAME}/${gameId}`);
+      console.log('API Service: Request headers:', this.getAuthHeaders());
+      
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.DELETE_GAME}/${gameId}`, {
         method: 'DELETE',
         headers: this.getAuthHeaders(),
         credentials: 'include',
       });
 
+      console.log('API Service: Raw response status:', response.status);
+      console.log('API Service: Raw response ok:', response.ok);
+      
       return this.handleResponse(response);
     } catch (error) {
       console.error('API Error - deleteGame:', error);

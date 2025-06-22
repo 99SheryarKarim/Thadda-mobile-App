@@ -163,6 +163,11 @@ const CreatedGamesDashboard = () => {
     animateEntrance();
   }, []);
 
+  // Debug useEffect to monitor deletingGameId changes
+  useEffect(() => {
+    console.log('deletingGameId changed to:', deletingGameId, 'Type:', typeof deletingGameId);
+  }, [deletingGameId]);
+
   const animateEntrance = () => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -354,6 +359,10 @@ const CreatedGamesDashboard = () => {
   };
 
   const handleDeleteGame = async (game) => {
+    console.log('handleDeleteGame called with game:', game);
+    console.log('Game ID:', game.id, 'Type:', typeof game.id);
+    console.log('Current deletingGameId:', deletingGameId, 'Type:', typeof deletingGameId);
+    
     Alert.alert(
       'تأكيد الحذف',
       `هل أنت متأكد من حذف اللعبة "${game.title}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`,
@@ -373,12 +382,16 @@ const CreatedGamesDashboard = () => {
   };
 
   const deleteGameFromAPI = async (gameId) => {
+    console.log('deleteGameFromAPI called with gameId:', gameId, 'Type:', typeof gameId);
+    
     try {
+      console.log('Setting deletingGameId to:', gameId);
       setDeletingGameId(gameId);
       
       if (USE_MOCK_API) {
         // Temporary mock implementation - remove this when you have a real API
         // Simulate API call delay
+        console.log('Using mock API for delete');
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // For now, we'll just remove from local state
@@ -389,6 +402,7 @@ const CreatedGamesDashboard = () => {
         */
         
         // Remove from local state
+        console.log('Removing game from local state');
         deleteCreatedGame(gameId);
         
         // Show success message
@@ -399,9 +413,12 @@ const CreatedGamesDashboard = () => {
         );
       } else {
         // Real API implementation
-        await apiService.deleteGame(gameId);
+        console.log('Deleting game with ID:', gameId);
+        const response = await apiService.deleteGame(gameId);
+        console.log('Delete API response:', response);
         
         // Remove from local state
+        console.log('Removing game from local state');
         deleteCreatedGame(gameId);
         
         // Show success message
@@ -418,10 +435,12 @@ const CreatedGamesDashboard = () => {
       // Show error message
       Alert.alert(
         'خطأ في الحذف',
-        'حدث خطأ أثناء حذف اللعبة. يرجى المحاولة مرة أخرى.',
+        `حدث خطأ أثناء حذف اللعبة: ${error.message}`,
         [{ text: 'حسناً' }]
       );
     } finally {
+      // Always reset the deleting state, regardless of success or failure
+      console.log('Resetting deletingGameId to null');
       setDeletingGameId(null);
     }
   };
@@ -621,12 +640,12 @@ const CreatedGamesDashboard = () => {
                 <TouchableOpacity 
                   style={[
                     styles.deleteButton,
-                    deletingGameId === item.id && styles.deleteButtonDisabled
+                    String(deletingGameId) === String(item.id) && styles.deleteButtonDisabled
                   ]}
                   onPress={() => handleDeleteGame(item)}
-                  disabled={deletingGameId === item.id}
+                  disabled={String(deletingGameId) === String(item.id)}
                 >
-                  {deletingGameId === item.id ? (
+                  {String(deletingGameId) === String(item.id) ? (
                     <ActivityIndicator size="small" color="#ef4444" />
                   ) : (
                     <Ionicons name="trash-outline" size={16} color="#ef4444" />
