@@ -158,6 +158,10 @@ const CreatedGamesDashboard = () => {
   const [deletingGameId, setDeletingGameId] = useState(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(30));
+  const [approvedGames, setApprovedGames] = useState([]);
+  const [pendingGames, setPendingGames] = useState([]);
+  const [draftGames, setDraftGames] = useState([]);
+  const pollingRef = React.useRef(null);
 
   useEffect(() => {
     fetchUserData();
@@ -341,11 +345,9 @@ const CreatedGamesDashboard = () => {
     try {
       if (USE_MOCK_API) {
         // TODO: Replace with actual API call when you have a backend
-        // await apiService.updateGameStatus(game.id, 'submitted');
-        
+        // await apiService.updateGameStatus(game.id, 'pending_approval');
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
         Alert.alert(
           'تم إرسال طلب الاعتماد',
           'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
@@ -353,8 +355,7 @@ const CreatedGamesDashboard = () => {
         );
       } else {
         // Real API implementation - using the website's endpoint
-        await apiService.updateGameStatus(game.id, 'submitted');
-        
+        await apiService.updateGameStatus(game.id, 'pending_approval');
         Alert.alert(
           'تم إرسال طلب الاعتماد',
           'تم إرسال طلب اعتماد اللعبة إلى الإدارة بنجاح',
@@ -571,9 +572,31 @@ const CreatedGamesDashboard = () => {
     </Animated.View>
   );
 
+  const filterGamesByStatus = (games) => {
+    setApprovedGames(games.filter(g => g.status === 'approved' || g.status === 'نشطة'));
+    setPendingGames(games.filter(g => g.status === 'pending_approval' || g.status === 'submitted' || g.status === 'قيد المراجعة'));
+    setDraftGames(games.filter(g => g.status === 'draft' || g.status === 'مسودة'));
+  };
+
+  useEffect(() => {
+    filterGamesByStatus(createdGames);
+  }, [createdGames]);
+
+  useEffect(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(() => {
+      fetchUserData();
+    }, 60000); // 60 seconds
+    return () => clearInterval(pollingRef.current);
+  }, []);
+
   const renderGameCard = ({ item, index }) => {
     const completionStatus = getGameCompletionStatus(item);
-    
+    const isApproved = item.status === 'approved' || item.status === 'نشطة';
+    const isPending = item.status === 'pending_approval' || item.status === 'submitted' || item.status === 'قيد المراجعة';
+    const isDraft = item.status === 'draft' || item.status === 'مسودة';
+    // Enable accreditation if 6 categories are completed
+    const canRequestAccreditation = completionStatus.categoriesCompleted === 6 && !isApproved;
     return (
       <Animated.View
         style={[
@@ -599,11 +622,14 @@ const CreatedGamesDashboard = () => {
                 <Text style={styles.gameTitle}>{item.name || item.title || 'لعبة بدون عنوان'}</Text>
                 <Text style={styles.gameDescription}>{item.description || 'لا يوجد وصف'}</Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
                 <Text style={styles.statusText}>{item.status || 'غير محدد'}</Text>
               </View>
             </View>
-
+            {/* Approval date for approved games */}
+            {isApproved && item.approvedAt && (
+              <Text style={{ fontSize: 10, color: '#10b981', marginBottom: 4 }}>تاريخ الاعتماد: {formatDate(item.approvedAt)}</Text>
+            )}
             {/* Completion Status */}
             <View style={styles.completionStatusContainer}>
               <View style={styles.completionItem}>
@@ -625,7 +651,6 @@ const CreatedGamesDashboard = () => {
                 </View>
               )}
             </View>
-
             {/* Basic Categories List */}
             <View style={styles.categoriesContainer}>
               <Text style={styles.categoriesTitle}>الفئات المضافة:</Text>
@@ -637,7 +662,6 @@ const CreatedGamesDashboard = () => {
                 ))}
               </ScrollView>
             </View>
-
             {/* Game Stats */}
             <View style={styles.gameStats}>
               <View style={styles.gameStatItem}>
@@ -653,11 +677,10 @@ const CreatedGamesDashboard = () => {
                 <Text style={styles.gameStatText}>{completionStatus.questionsCompleted} سؤال</Text>
               </View>
             </View>
-
             {/* Game Footer */}
             <View style={styles.gameFooter}>
               <View style={styles.gameMetadata}>
-                <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}>
+                <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.difficulty) }]}> 
                   <Text style={styles.difficultyText}>{item.difficulty || 'متوسط'}</Text>
                 </View>
                 <Text style={styles.gameDate}>{formatDate(item.createdAt || item.createdDate)}</Text>
@@ -685,7 +708,6 @@ const CreatedGamesDashboard = () => {
                 </TouchableOpacity>
               </View>
             </View>
-
             {/* Action Buttons Row */}
             <View style={styles.mainActionButtons}>
               <TouchableOpacity 
@@ -700,17 +722,16 @@ const CreatedGamesDashboard = () => {
                   <Text style={styles.gameShowButtonText}>عرض اللعبة</Text>
                 </LinearGradient>
               </TouchableOpacity>
-              
               <TouchableOpacity 
                 style={[
                   styles.accreditationButton,
-                  !completionStatus.isFullyCompleted && styles.accreditationButtonDisabled
+                  (!canRequestAccreditation) && styles.accreditationButtonDisabled
                 ]}
                 onPress={() => handleAccreditationRequest(item)}
-                disabled={!completionStatus.isFullyCompleted}
+                disabled={!canRequestAccreditation}
               >
                 <LinearGradient
-                  colors={completionStatus.isFullyCompleted ? ['#10b981', '#059669'] : ['#9ca3af', '#6b7280']}
+                  colors={canRequestAccreditation ? ['#10b981', '#059669'] : ['#9ca3af', '#6b7280']}
                   style={styles.accreditationButtonGradient}
                 >
                   <Ionicons 
@@ -870,8 +891,8 @@ const CreatedGamesDashboard = () => {
             ]}
           >
             <Ionicons name="game-controller-outline" size={20} color="#374151" />
-            <Text style={styles.sectionTitle}>الألعاب</Text>
-            <Text style={styles.gamesCount}>({createdGames.length})</Text>
+            <Text style={styles.sectionTitle}>الألعاب المعتمدة</Text>
+            <Text style={styles.gamesCount}>({approvedGames.length})</Text>
           </Animated.View>
 
           {loading ? (
@@ -879,9 +900,9 @@ const CreatedGamesDashboard = () => {
               <Ionicons name="game-controller-outline" size={40} color="#60a5fa" />
               <Text style={styles.loadingText}>جاري تحميل ألعابك...</Text>
             </View>
-          ) : createdGames.length > 0 ? (
+          ) : approvedGames.length > 0 ? (
             <FlatList
-              data={createdGames}
+              data={approvedGames}
               renderItem={renderGameCard}
               keyExtractor={(item, idx) => (item.id ? item.id.toString() : idx.toString())}
               showsVerticalScrollIndicator={false}
@@ -894,6 +915,60 @@ const CreatedGamesDashboard = () => {
             renderEmptyState()
           )}
         </View>
+
+        {/* Pending Approval Section */}
+        {pendingGames.length > 0 && (
+          <View style={styles.gamesSection}>
+            <Animated.View 
+              style={[
+                styles.sectionHeader,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }
+              ]}
+            >
+              <Ionicons name="time-outline" size={20} color="#f59e0b" />
+              <Text style={styles.sectionTitle}>قيد المراجعة</Text>
+              <Text style={styles.gamesCount}>({pendingGames.length})</Text>
+            </Animated.View>
+            <FlatList
+              data={pendingGames}
+              renderItem={renderGameCard}
+              keyExtractor={(item, idx) => (item.id ? item.id.toString() : idx.toString())}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              contentContainerStyle={styles.gamesList}
+            />
+          </View>
+        )}
+
+        {/* Draft Games Section */}
+        {draftGames.length > 0 && (
+          <View style={styles.gamesSection}>
+            <Animated.View 
+              style={[
+                styles.sectionHeader,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }
+              ]}
+            >
+              <Ionicons name="document-outline" size={20} color="#6b7280" />
+              <Text style={styles.sectionTitle}>المسودات</Text>
+              <Text style={styles.gamesCount}>({draftGames.length})</Text>
+            </Animated.View>
+            <FlatList
+              data={draftGames}
+              renderItem={renderGameCard}
+              keyExtractor={(item, idx) => (item.id ? item.id.toString() : idx.toString())}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              contentContainerStyle={styles.gamesList}
+            />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
