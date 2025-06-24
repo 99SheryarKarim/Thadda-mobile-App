@@ -1,9 +1,9 @@
 // API Configuration
 // Set this to false when you have a real backend API
-export const USE_MOCK_API = false; // Enabled real API mode with fresh token
+export const USE_MOCK_API: boolean = false; // Enabled real API mode with fresh token
 
 // Your API base URL - using the production URL
-export const API_BASE_URL = 'https://tahadda-dev-env.onrender.com/api/v1';
+export const API_BASE_URL: string = 'https://tahadda-dev-env.onrender.com/api/v1';
 
 // API endpoints - matching the website's API slice
 export const API_ENDPOINTS = {
@@ -29,10 +29,10 @@ export const API_ENDPOINTS = {
   
   // Authentication
   LOGIN: '/auth/login',
-};
+} as const;
 
 // Mock delay for API calls (in milliseconds)
-export const MOCK_API_DELAY = 1000;
+export const MOCK_API_DELAY: number = 1000;
 
 // Development settings
 export const DEV_SETTINGS = {
@@ -42,4 +42,6 @@ export const DEV_SETTINGS = {
   TEST_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY2MmMxYmNmLTMzNzgtNDYyYS1hODExLWRjZDA2NjMyNDE2NiIsInJvbGUiOiJ2aXNpdG9yIiwiZW1haWwiOiJ0ZXN0MTNAZ21haWwuY29tIiwiaWF0IjoxNzUwNTA5MTkzLCJleHAiOjE3NTIzMjM1OTN9.s1nP4OiXS6sMTBu7WitZp2DR1xw6MPt1ysgIOizKFaY',
   // Set this to true to test API without authentication (for development only)
   BYPASS_AUTH: false, // Using real authentication
-}; 
+} as const;
+
+export type ApiEndpoint = typeof API_ENDPOINTS[keyof typeof API_ENDPOINTS]; 

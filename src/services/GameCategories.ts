@@ -1,9 +1,24 @@
 // API service for game categories
-const API_BASE_URL = 'https://your-api-endpoint.com/api';
+import { API_BASE_URL } from '../config/api';
+import { ApiResponse, Category } from '../types';
+
+interface CategoryFilter {
+  id: string;
+  title: string;
+  active?: boolean;
+}
+
+interface CategoryResponse {
+  success: boolean;
+  data: Category[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export const gameCategories = {
   // Fetch all game categories
-  fetchCategories: async () => {
+  fetchCategories: async (): Promise<CategoryResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories`);
       if (!response.ok) {
@@ -17,7 +32,7 @@ export const gameCategories = {
   },
 
   // Fetch categories by filter
-  fetchCategoriesByFilter: async (filter) => {
+  fetchCategoriesByFilter: async (filter: string): Promise<CategoryResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories?filter=${filter}`);
       if (!response.ok) {
@@ -31,7 +46,7 @@ export const gameCategories = {
   },
 
   // Search categories
-  searchCategories: async (query) => {
+  searchCategories: async (query: string): Promise<CategoryResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories/search?q=${encodeURIComponent(query)}`);
       if (!response.ok) {
@@ -45,7 +60,7 @@ export const gameCategories = {
   },
 
   // Get category details
-  getCategoryDetails: async (categoryId) => {
+  getCategoryDetails: async (categoryId: string): Promise<Category> => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`);
       if (!response.ok) {
@@ -59,7 +74,7 @@ export const gameCategories = {
   },
 
   // Get random categories
-  getRandomCategories: async (count = 6) => {
+  getRandomCategories: async (count: number = 6): Promise<CategoryResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/categories/random?count=${count}`);
       if (!response.ok) {
@@ -73,28 +88,4 @@ export const gameCategories = {
   }
 };
 
-// Expected API response format:
-/*
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "title": "الألغاز والأمثال",
-      "titleEn": "Riddles and Proverbs",
-      "icon": "puzzle-outline",
-      "color": "#60a5fa",
-      "difficulty": "متوسط",
-      "difficultyEn": "medium",
-      "questionsCount": 6,
-      "category": "general",
-      "description": "أسئلة متنوعة حول الألغاز والأمثال الشعبية",
-      "createdAt": "2024-01-01T00:00:00Z",
-      "updatedAt": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 50,
-  "page": 1,
-  "limit": 20
-}
-*/
+export type { CategoryFilter, CategoryResponse }; 

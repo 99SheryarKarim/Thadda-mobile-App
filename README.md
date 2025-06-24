@@ -1,60 +1,65 @@
-# AI Quiz Generator
+# Thadda Mobile App
 
-A React Native application that generates quiz questions using the Open Trivia Database API.
+A React Native mobile application for interactive quiz games with Arabic language support.
 
-## Features
+## Tech Stack
 
-- Quiz question generation
-- Cross-platform (iOS & Android)
-- Multiple difficulty levels
-- Various question types
-- Local storage for quiz history
-
-## Prerequisites
-
-- Node.js (v14 or higher)
-- React Native development environment
-- Expo CLI
-
-## Installation
-
-1. Clone the repository:
-
-git clone [repository-url]
-
-2. Install dependencies:
-
-npm install
-
-3. Start the development server:
-npm start
-
-## Usage
-
-1. **Generate Questions**
-   - Tap "Generate" button
-   - Select topic, difficulty, and question type
-   - Preview and insert generated questions
-
-2. **Create Quiz**
-   - Add generated questions to your quiz
-   - Save and organize quizzes by topic
-
-3. **Play Quiz**
-   - Select a saved quiz
-   - Answer questions and track progress
+- React Native 0.79.3
+- Expo SDK 53
+- TypeScript
+- React Navigation 6
+- AsyncStorage
+- Axios
 
 ## Project Structure
 
 ```
 src/
-├── components/     # Reusable UI components
-├── navigation/     # Navigation configuration
-├── screens/        # Main app screens
-├── services/       # API and business logic
+├── components/          # Reusable UI components
+├── config/             # API configuration
+├── context/            # React Context providers
+├── routers/            # Navigation structure
+│   ├── index.tsx       # Main router container
+│   ├── BottomNavigation.tsx  # Tab navigation
+│   ├── HomeStack.tsx   # Home tab stack
+│   └── CreateGameStack.tsx   # Create Game tab stack
+├── screens/            # App screens
+├── services/           # API services
+├── types/              # TypeScript type definitions
+└── utils/              # Utilities and helpers
+    └── Routes.ts       # Navigation routes enum
 ```
 
-## API Integration
+## Navigation Structure
 
-The app uses the Open Trivia Database API for question generation.
+- **Bottom Tabs**: Home, Create Game, Game Log
+- **Stack Navigation**: Each tab can have multiple screens
+- **Routes Enum**: Centralized route management
+
+## Key Features
+
+- User authentication
+- Game creation and management
+- Quiz gameplay
+- Game history tracking
+- Arabic language support
+- Dark/light theme support
+
+## Getting Started
+
+1. Install dependencies: `npm install`
+2. Start development server: `npm start`
+3. Run on device: `npm run android` or `npm run ios`
+
+## API Configuration
+
+Update `src/config/api.ts` with your backend API endpoints and authentication tokens.
+
+## Available Scripts
+
+- `npm start` - Start Expo development server
+- `npm run android` - Run on Android
+- `npm run ios` - Run on iOS
+- `npm run type-check` - TypeScript type checking
+- `npm run lint` - ESLint code checking
 

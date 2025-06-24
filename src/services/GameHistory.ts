@@ -1,9 +1,56 @@
-// services/api/gameHistory.js
-import { API_BASE_URL } from '../config/apiConfig';
+// services/api/gameHistory.ts
+import { API_BASE_URL } from '../config/api';
+import { ApiResponse, Game } from '../types';
+
+interface GameHistoryItem {
+  id: number;
+  name: string;
+  date: string;
+  players: Array<{
+    id: number;
+    name: string;
+    avatar?: string;
+  }>;
+  categories: Array<{
+    id: number;
+    name: string;
+    color: string;
+  }>;
+  status: 'completed' | 'paused' | 'in_progress';
+  score: {
+    team1: number;
+    team2: number;
+  };
+  duration: number; // in seconds
+  winner: 'team1' | 'team2';
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface GameHistoryResponse {
+  success: boolean;
+  data: GameHistoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+interface GameStats {
+  totalGames: number;
+  completedGames: number;
+  pausedGames: number;
+  averageScore: number;
+  totalPlayTime: number;
+  favoriteCategories: Array<{
+    id: number;
+    name: string;
+    count: number;
+  }>;
+}
 
 export const gameHistoryAPI = {
   // Fetch user's game history
-  fetchGameHistory: async (userId) => {
+  fetchGameHistory: async (userId: string): Promise<GameHistoryResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/history/${userId}`, {
         method: 'GET',
@@ -27,7 +74,7 @@ export const gameHistoryAPI = {
   },
 
   // Get game details by ID
-  getGameDetails: async (gameId) => {
+  getGameDetails: async (gameId: string): Promise<Game> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/${gameId}`, {
         method: 'GET',
@@ -49,7 +96,7 @@ export const gameHistoryAPI = {
   },
 
   // Continue a paused game
-  continueGame: async (gameId) => {
+  continueGame: async (gameId: string): Promise<ApiResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/${gameId}/continue`, {
         method: 'POST',
@@ -71,7 +118,7 @@ export const gameHistoryAPI = {
   },
 
   // Restart a completed game
-  restartGame: async (gameId) => {
+  restartGame: async (gameId: string): Promise<ApiResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/${gameId}/restart`, {
         method: 'POST',
@@ -93,7 +140,7 @@ export const gameHistoryAPI = {
   },
 
   // Delete a game from history
-  deleteGame: async (gameId) => {
+  deleteGame: async (gameId: string): Promise<ApiResponse> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/${gameId}`, {
         method: 'DELETE',
@@ -114,7 +161,7 @@ export const gameHistoryAPI = {
   },
 
   // Get game statistics
-  getGameStats: async (userId) => {
+  getGameStats: async (userId: string): Promise<GameStats> => {
     try {
       const response = await fetch(`${API_BASE_URL}/games/stats/${userId}`, {
         method: 'GET',
@@ -136,42 +183,4 @@ export const gameHistoryAPI = {
   }
 };
 
-// Expected API response format for game history:
-/*
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "لعبة الأصدقاء",
-      "date": "2024-01-15T10:30:00Z",
-      "players": [
-        {
-          "id": 1,
-          "name": "أحمد",
-          "avatar": "https://example.com/avatar1.jpg"
-        }
-      ],
-      "categories": [
-        {
-          "id": 1,
-          "name": "الألغاز والأمثال",
-          "color": "#60a5fa"
-        }
-      ],
-      "status": "completed", // completed, paused, in_progress
-      "score": {
-        "team1": 45,
-        "team2": 38
-      },
-      "duration": 1500, // in seconds
-      "winner": "team1",
-      "createdAt": "2024-01-15T10:00:00Z",
-      "updatedAt": "2024-01-15T10:30:00Z"
-    }
-  ],
-  "total": 10,
-  "page": 1,
-  "limit": 20
-}
-*/
+export type { GameHistoryItem, GameHistoryResponse, GameStats }; 

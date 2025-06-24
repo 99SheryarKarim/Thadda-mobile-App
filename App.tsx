@@ -1,13 +1,15 @@
 import React from 'react';
-import RootNavigator from './src/navigation/RootNavigator';
+import RootNavigation from './src/routers';
 import { CreatedGamesProvider } from './src/context/CreatedGamesContext';
 import FlashMessage from 'react-native-flash-message';
 
-export default function App() {
+const App: React.FC = () => {
   return (
     <CreatedGamesProvider>
-      <RootNavigator />
+      <RootNavigation />
       <FlashMessage position="top" />
     </CreatedGamesProvider>
   );
-}
+};
+
+export default App;

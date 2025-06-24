@@ -2,15 +2,33 @@
 // Replace the base URL with your actual API endpoint
 
 import { API_BASE_URL, API_ENDPOINTS, DEV_SETTINGS } from '../config/api';
+import { 
+  ApiResponse, 
+  Game, 
+  LoginCredentials, 
+  CreateGameForm,
+  User 
+} from '../types';
+
+interface AuthHeaders extends Record<string, string> {
+  'Content-Type': string;
+  'Authorization'?: string;
+}
+
+interface GameData extends Partial<CreateGameForm> {
+  [key: string]: any;
+}
 
 class ApiService {
+  private baseURL: string;
+
   constructor() {
     this.baseURL = API_BASE_URL;
   }
 
   // Helper method to get auth headers
-  getAuthHeaders() {
-    let token = null;
+  private getAuthHeaders(): AuthHeaders {
+    let token: string | null = null;
     
     // Check if we should bypass authentication for testing
     if (DEV_SETTINGS.BYPASS_AUTH) {
@@ -34,7 +52,7 @@ class ApiService {
       }
     }
     
-    const headers = {
+    const headers: AuthHeaders = {
       'Content-Type': 'application/json',
     };
     
@@ -47,7 +65,7 @@ class ApiService {
   }
 
   // Helper method to handle API responses
-  async handleResponse(response) {
+  private async handleResponse<T = any>(response: Response): Promise<T> {
     console.log('API Response Status:', response.status);
     console.log('API Response Headers:', response.headers);
     
@@ -89,7 +107,7 @@ class ApiService {
   }
 
   // Get games statistics
-  async getGamesStatistics() {
+  async getGamesStatistics(): Promise<ApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.GAMES_STATISTICS}`, {
         method: 'GET',
@@ -106,7 +124,7 @@ class ApiService {
   }
 
   // Get user games
-  async getUserGames() {
+  async getUserGames(): Promise<ApiResponse<{ games: Game[] }>> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.USER_GAMES}`, {
         method: 'GET',
@@ -122,7 +140,7 @@ class ApiService {
   }
 
   // Delete a game
-  async deleteGame(gameId) {
+  async deleteGame(gameId: string): Promise<ApiResponse> {
     try {
       console.log('API Service: Deleting game with ID:', gameId);
       console.log('API Service: Request URL:', `${this.baseURL}${API_ENDPOINTS.DELETE_GAME}/${gameId}`);
@@ -145,7 +163,7 @@ class ApiService {
   }
 
   // Get user statistics
-  async getUserStats() {
+  async getUserStats(): Promise<ApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.USER_STATS}`, {
         method: 'GET',
@@ -160,7 +178,7 @@ class ApiService {
   }
 
   // Get created games
-  async getCreatedGames() {
+  async getCreatedGames(): Promise<ApiResponse<{ games: Game[] }>> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.CREATED_GAMES}`, {
         method: 'GET',
@@ -175,15 +193,15 @@ class ApiService {
   }
 
   // Create a new game
-  async createGame(gameData) {
+  async createGame(gameData: GameData): Promise<ApiResponse<Game>> {
     try {
       console.log('Creating game with data...');
       console.log('Game data:', gameData);
       
-      const headers = {
+      const headers: AuthHeaders = {
         'Content-Type': 'application/json',
         ...(this.getAuthHeaders()['Authorization'] && {
-          'Authorization': this.getAuthHeaders()['Authorization']
+          'Authorization': this.getAuthHeaders()['Authorization']!
         }),
       };
       
@@ -202,24 +220,24 @@ class ApiService {
     } catch (error) {
       console.error('API Error - createGame:', error);
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        name: (error as Error).name
       });
       throw error;
     }
   }
 
   // Update a game
-  async updateGame(gameId, gameData) {
+  async updateGame(gameId: string, gameData: GameData): Promise<ApiResponse<Game>> {
     try {
       console.log('Updating game with ID:', gameId);
       console.log('Game data:', gameData);
       
-      const headers = {
+      const headers: AuthHeaders = {
         'Content-Type': 'application/json',
         ...(this.getAuthHeaders()['Authorization'] && {
-          'Authorization': this.getAuthHeaders()['Authorization']
+          'Authorization': this.getAuthHeaders()['Authorization']!
         }),
       };
       
@@ -238,16 +256,16 @@ class ApiService {
     } catch (error) {
       console.error('API Error - updateGame:', error);
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        name: (error as Error).name
       });
       throw error;
     }
   }
 
   // Request accreditation for a game
-  async requestAccreditation(gameId) {
+  async requestAccreditation(gameId: string): Promise<ApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.GAMES}/${gameId}/accreditation`, {
         method: 'POST',
@@ -262,7 +280,7 @@ class ApiService {
   }
 
   // Update game status (publish/submit for review)
-  async updateGameStatus(gameId, status) {
+  async updateGameStatus(gameId: string, status: string): Promise<ApiResponse> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.UPDATE_GAME_STATUS}/${gameId}/status`, {
         method: 'PUT',
@@ -282,14 +300,14 @@ class ApiService {
   }
 
   // Login to get authentication token
-  async login(email, password) {
+  async login(credentials: LoginCredentials): Promise<ApiResponse<{ user: User; token: string }>> {
     try {
       const response = await fetch(`${this.baseURL}${API_ENDPOINTS.LOGIN}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(credentials),
         credentials: 'include',
       });
 
