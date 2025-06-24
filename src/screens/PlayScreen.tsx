@@ -41,25 +41,25 @@ const PlayScreen = () => {
   const sparkleOpacity = sparkleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Custom App Bar */}
-      <View style={[styles.appBar, { paddingTop: insets.top + 12 }]}>
-        {/* App Icon with gradient border */}
-        <LinearGradient
-          colors={['#60a5fa', '#1a2332']}
-          style={styles.appIconGradient}
-        >
-          <View style={styles.appIconCircle}>
-            <Ionicons name="sparkles" size={28} color="#fff" />
-          </View>
-        </LinearGradient>
-        <Text style={styles.appBarTitle}>تحدي</Text>
-        {/* Animated sparkle/star icon */}
-        <Animated.View style={{ marginLeft: 8, transform: [{ scale: sparkleScale }], opacity: sparkleOpacity }}>
-          <Ionicons name="star" size={26} color="#60a5fa" />
-        </Animated.View>
-      </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+    <SafeAreaView style={[styles.container, { flex: 1 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        {/* Custom App Bar */}
+        <View style={[styles.appBar, { paddingTop: insets.top + 12 }]}>
+          {/* App Icon with gradient border */}
+          <LinearGradient
+            colors={['#60a5fa', '#1a2332']}
+            style={styles.appIconGradient}
+          >
+            <View style={styles.appIconCircle}>
+              <Ionicons name="sparkles" size={28} color="#fff" />
+            </View>
+          </LinearGradient>
+          <Text style={styles.appBarTitle}>تحدي</Text>
+          {/* Animated sparkle/star icon */}
+          <Animated.View style={{ marginLeft: 8, transform: [{ scale: sparkleScale }], opacity: sparkleOpacity }}>
+            <Ionicons name="star" size={26} color="#60a5fa" />
+          </Animated.View>
+        </View>
         <LinearGradient
           colors={['#1a2332', '#2d3748', '#1a2332']}
           style={styles.background}
@@ -93,10 +93,9 @@ const PlayScreen = () => {
               <Text style={styles.buttonText}>ابدأ اللعب</Text>
             </TouchableOpacity>
           </View>
+          <View style={styles.sectionDivider} />
+          <GameCatogeriesScreen />
         </LinearGradient>
-        {/* Divider and GameCatogeriesScreen */}
-        <View style={styles.sectionDivider} />
-        <GameCatogeriesScreen />
       </ScrollView>
     </SafeAreaView>
   );

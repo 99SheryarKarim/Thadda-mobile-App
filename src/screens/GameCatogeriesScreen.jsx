@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,79 +10,15 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  Image,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import placeholderImg from '../../assets/images.jpeg';
+import ApiService from '../services/api';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2; // 2 columns with padding
-
-// Mock API data - replace with actual API call
-const mockGameCategories = [
-  {
-    id: 1,
-    title: 'الألغاز والأمثال',
-    icon: 'puzzle-outline',
-    color: '#60a5fa',
-    difficulty: 'متوسط',
-    questionsCount: 6
-  },
-  {
-    id: 2,
-    title: 'أصوات المشاهير',
-    icon: 'mic-outline',
-    color: '#34d399',
-    difficulty: 'صعب',
-    questionsCount: 6
-  },
-  {
-    id: 3,
-    title: 'التكنولوجيا',
-    icon: 'laptop-outline',
-    color: '#f59e0b',
-    difficulty: 'سهل',
-    questionsCount: 6
-  },
-  {
-    id: 4,
-    title: 'كأس العالم',
-    icon: 'trophy-outline',
-    color: '#ef4444',
-    difficulty: 'متوسط',
-    questionsCount: 6
-  },
-  {
-    id: 5,
-    title: 'ماذا ترى؟',
-    icon: 'eye-outline',
-    color: '#8b5cf6',
-    difficulty: 'سهل',
-    questionsCount: 6
-  },
-  {
-    id: 6,
-    title: 'قمصان الأندية',
-    icon: 'shirt-outline',
-    color: '#06b6d4',
-    difficulty: 'صعب',
-    questionsCount: 6
-  },
-  {
-    id: 7,
-    title: 'التاريخ العربي',
-    icon: 'library-outline',
-    color: '#d946ef',
-    difficulty: 'صعب',
-    questionsCount: 6
-  },
-  {
-    id: 8,
-    title: 'الجغرافيا',
-    icon: 'earth-outline',
-    color: '#10b981',
-    difficulty: 'متوسط',
-    questionsCount: 6
-  }
-];
 
 const categoryFilters = [
   { id: 'all', title: 'الكل', active: true },
@@ -95,35 +31,127 @@ const categoryFilters = [
   { id: 'community', title: 'ألعاب مجتمعية' }
 ];
 
+const API_GAMES_URL = 'https://tahadda-dev-env.onrender.com/api/v1/category/category-list';
+const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY2MmMxYmNmLTMzNzgtNDYyYS1hODExLWRjZDA2NjMyNDE2NiIsInJvbGUiOiJ2aXNpdG9yIiwiZW1haWwiOiJ0ZXN0MTNAZ21haWwuY29tIiwiaWF0IjoxNzUwNTA5MTkzLCJleHAiOjE3NTIzMjM1OTN9.s1nP4OiXS6sMTBu7WitZp2DR1xw6MPt1ysgIOizKFaY';
+
 const GameCategoriesScreen = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [error, setError] = useState('');
+  const [allGames, setAllGames] = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
+  const [gamesError, setGamesError] = useState('');
+  const [createdGames, setCreatedGames] = useState([]);
+  const [createdGamesLoading, setCreatedGamesLoading] = useState(true);
+  const [createdGamesError, setCreatedGamesError] = useState('');
+  const [visibleGamesCount, setVisibleGamesCount] = useState(6);
 
-  // Simulate API call
   useEffect(() => {
     fetchCategories();
+    fetchAllGames();
+    fetchCreatedGames();
   }, []);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In real app, replace with: const response = await fetch('your-api-endpoint');
-      setCategories(mockGameCategories);
+      setError('');
+      const response = await fetch('https://tahadda-dev-env.onrender.com/api/v1/community/mygames', {
+        headers: { 'Authorization': `Bearer ${TEST_TOKEN}` }
+      });
+      const data = await response.json();
+      console.log('API games data:', data);
+      const games = Array.isArray(data) ? data : (data.games || []);
+      setCategories(games);
+      if (!games.length) setError('No games found from the server.');
     } catch (error) {
       console.error('Error fetching categories:', error);
+      setError('An error occurred while loading games: ' + error.message);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchAllGames = async () => {
+    try {
+      setGamesLoading(true);
+      setGamesError('');
+      const response = await fetch(API_GAMES_URL, {
+        headers: { 'Authorization': `Bearer ${TEST_TOKEN}` }
+      });
+      const data = await response.json();
+      setAllGames(Array.isArray(data) ? data : []);
+      if (!data || !data.length) setGamesError('لم يتم العثور على ألعاب.');
+    } catch (error) {
+      setGamesError('حدث خطأ أثناء تحميل الألعاب: ' + error.message);
+      setAllGames([]);
+    } finally {
+      setGamesLoading(false);
+    }
+  };
+
+  const fetchCreatedGames = async () => {
+    try {
+      setCreatedGamesLoading(true);
+      setCreatedGamesError('');
+      const api = new ApiService();
+      const data = await api.getUserGames();
+      let games = [];
+      if (data && data.games && Array.isArray(data.games)) {
+        games = data.games.map(game => ({
+          id: game.id,
+          name: game.gameName || game.name,
+          title: game.gameName || game.name,
+          description: game.gameDescription || game.description,
+          status: game.status || 'draft',
+          createdAt: game.createdAt || game.createdDate,
+          image: game.image || game.gameImage || null,
+          categories: game.categories ? game.categories.map(category => ({
+            id: category.id,
+            name: category.name || category.categoryName,
+            image: category.image || category.categoryImage || null,
+            questions: category.questions || category.questionData || {}
+          })) : [],
+          players: game.statistics?.players || game.players || 0,
+          views: game.statistics?.views || game.views || 0,
+          difficulty: game.difficulty || 'متوسط'
+        }));
+      } else if (Array.isArray(data)) {
+        games = data.map(game => ({
+          id: game.id,
+          name: game.gameName || game.name,
+          title: game.gameName || game.name,
+          description: game.gameDescription || game.description,
+          status: game.status || 'draft',
+          createdAt: game.createdAt || game.createdDate,
+          image: game.image || game.gameImage || null,
+          categories: game.categories ? game.categories.map(category => ({
+            id: category.id,
+            name: category.name || category.categoryName,
+            image: category.image || category.categoryImage || null,
+            questions: category.questions || category.questionData || {}
+          })) : [],
+          players: game.statistics?.players || game.players || 0,
+          views: game.statistics?.views || game.views || 0,
+          difficulty: game.difficulty || 'متوسط'
+        }));
+      }
+      setCreatedGames(games);
+      if (!games.length) setCreatedGamesError('لم يتم العثور على ألعاب أنشأها المستخدمون.');
+    } catch (error) {
+      setCreatedGamesError('حدث خطأ أثناء تحميل الألعاب التي أنشأها المستخدمون: ' + error.message);
+      setCreatedGames([]);
+    } finally {
+      setCreatedGamesLoading(false);
+    }
+  };
+
   const filteredCategories = categories.filter(category =>
-    category.title.toLowerCase().includes(searchText.toLowerCase())
+    (category.title || category.name || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   const handleCategorySelect = (category) => {
@@ -142,12 +170,12 @@ const GameCategoriesScreen = () => {
 
   const renderCategoryCard = ({ item }) => {
     const isSelected = selectedCategories.find(cat => cat.id === item.id);
-    
     return (
       <TouchableOpacity
+        key={item.id}
         style={[
           styles.categoryCard,
-          { backgroundColor: item.color },
+          { backgroundColor: '#60a5fa' },
           isSelected && styles.selectedCard
         ]}
         onPress={() => handleCategorySelect(item)}
@@ -158,15 +186,13 @@ const GameCategoriesScreen = () => {
             <Ionicons name="information-circle-outline" size={20} color="white" />
           </TouchableOpacity>
         </View>
-        
         <View style={styles.cardContent}>
-          <Ionicons name={item.icon} size={40} color="white" style={styles.cardIcon} />
-          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Ionicons name={'help-circle-outline'} size={40} color="white" style={styles.cardIcon} />
+          <Text style={styles.cardTitle}>{item.title || item.name}</Text>
           <Text style={styles.cardSubtitle}>
-            {item.questionsCount} أسئلة • {item.difficulty}
+            {(item.questionsCount || (item.questions ? item.questions.length : 0)) + ' أسئلة'}
           </Text>
         </View>
-        
         {isSelected && (
           <View style={styles.selectedIndicator}>
             <Ionicons name="checkmark-circle" size={24} color="white" />
@@ -194,6 +220,123 @@ const GameCategoriesScreen = () => {
     </TouchableOpacity>
   );
 
+  // Helper component for fallback image
+  const GameImage = ({ uri }) => {
+    const [error, setError] = useState(false);
+    return (
+      <Image
+        source={error || !uri ? placeholderImg : { uri }}
+        style={{ width: 100, height: 80, borderRadius: 10, marginBottom: 8, backgroundColor: '#e5e7eb' }}
+        resizeMode="cover"
+        onError={() => setError(true)}
+      />
+    );
+  };
+
+  const renderAllGameCard = ({ item }) => (
+    <View style={{ flex: 1, margin: 8, backgroundColor: '#fff', borderRadius: 16, padding: 10, alignItems: 'center', shadowColor: '#60a5fa', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 2, maxWidth: cardWidth }}>
+      <GameImage uri={item.img} />
+      <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#60a5fa', textAlign: 'center', marginBottom: 4 }}>{item.category}</Text>
+      <Text style={{ fontSize: 12, color: '#6b7280', textAlign: 'center' }} numberOfLines={2}>{item.description}</Text>
+    </View>
+  );
+
+  // Helper to chunk array into rows of 2
+  const chunkArray = (arr, size) => {
+    const res = [];
+    for (let i = 0; i < arr.length; i += size) {
+      res.push(arr.slice(i, i + size));
+    }
+    return res;
+  };
+
+  // Add a helper for the status badge
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'نشطة':
+      case 'approved':
+        return '#10b981'; // green
+      case 'مسودة':
+      case 'draft':
+        return '#f59e0b'; // yellow
+      case 'متوقفة':
+        return '#ef4444'; // red
+      default:
+        return '#6b7280'; // gray
+    }
+  };
+
+  // Professional card component for a game with touch feedback and reduced height
+  const GameCard = ({ game, hideStatus }) => {
+    const scale = React.useRef(new Animated.Value(1)).current;
+    const handlePressIn = () => {
+      Animated.spring(scale, { toValue: 0.97, useNativeDriver: true }).start();
+    };
+    const handlePressOut = () => {
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
+    };
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={{ flex: 1 }}
+      >
+        <Animated.View style={{
+          transform: [{ scale }],
+          margin: 8,
+          backgroundColor: '#fff',
+          borderRadius: 16,
+          overflow: 'hidden',
+          shadowColor: '#2563eb',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.13,
+          shadowRadius: 12,
+          elevation: 6,
+          maxWidth: cardWidth,
+          minHeight: 160,
+          position: 'relative',
+        }}>
+          {/* Game Image */}
+          <View style={{ width: '100%', height: 68, backgroundColor: '#e5e7eb' }}>
+            <Image
+              source={game.img || game.image || game.gameImage ? { uri: game.img || game.image || game.gameImage } : placeholderImg}
+              style={{ width: '100%', height: '100%', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}
+              resizeMode="cover"
+            />
+            {/* Status Badge (conditionally render) */}
+            {!hideStatus && (
+              <View style={{
+                position: 'absolute',
+                top: 7,
+                right: 7,
+                backgroundColor: getStatusColor(game.status),
+                borderRadius: 8,
+                paddingHorizontal: 7,
+                paddingVertical: 1,
+                zIndex: 2,
+              }}>
+                <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>{game.status || 'غير محدد'}</Text>
+              </View>
+            )}
+          </View>
+          {/* Game Info */}
+          <View style={{ padding: 10, alignItems: 'center' }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#2563eb', textAlign: 'center', marginBottom: 2 }} numberOfLines={1}>
+              {game.category || game.title || game.name}
+            </Text>
+            <Text style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', marginBottom: 2 }} numberOfLines={2}>
+              {game.description || game.gameDescription || 'لا يوجد وصف'}
+            </Text>
+          </View>
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Filter createdGames to only include approved games
+  const approvedCreatedGames = createdGames.filter(game => (game.status || '').toLowerCase() === 'approved');
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -206,12 +349,17 @@ const GameCategoriesScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.container, { flex: 1 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}>
+        {/* Error Message */}
+        {error && error !== 'No games found from the server.' ? (
+          <View style={{ padding: 16, backgroundColor: '#fee2e2', borderRadius: 8, margin: 16 }}>
+            <Text style={{ color: '#b91c1c', fontWeight: 'bold', textAlign: 'center' }}>{error}</Text>
+          </View>
+        ) : null}
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>اختر فئات اللعب</Text>
-          
           <TouchableOpacity
             style={styles.randomButton}
             onPress={handleRandomSelection}
@@ -219,13 +367,11 @@ const GameCategoriesScreen = () => {
             <Ionicons name="dice-outline" size={20} color="white" />
             <Text style={styles.randomButtonText}>اختيار عشوائي</Text>
           </TouchableOpacity>
-          
           <Text style={styles.description}>
             اختر 3 فئات لفريقك و 3 للفريق المنافس. لكل فئة، هناك 6 أسئلة مختلفة،
             كل منها يستحق عدد معين من النقاط حسب مستوى الصعوبة.
           </Text>
         </View>
-
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#9ca3af" style={styles.searchIcon} />
@@ -238,37 +384,57 @@ const GameCategoriesScreen = () => {
             textAlign="right"
           />
         </View>
-
-        {/* Filter Buttons */}
-        <ScrollView
+        {/* Filter Buttons (horizontal FlatList) */}
+        <FlatList
+          data={categoryFilters}
+          keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
           contentContainerStyle={styles.filtersContent}
-        >
-          <TouchableOpacity style={styles.addButton}>
-            <Ionicons name="add" size={20} color="#6b7280" />
-          </TouchableOpacity>
-          {categoryFilters.map(renderFilterButton)}
-        </ScrollView>
-
-        {/* Selected Categories Counter */}
-        <View style={styles.selectionCounter}>
-          <Text style={styles.counterText}>
-            الفئات المختارة: {selectedCategories.length}/6
-          </Text>
-        </View>
-
-        {/* Categories Grid */}
-        <FlatList
-          data={filteredCategories}
-          renderItem={renderCategoryCard}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.categoriesContainer}
-          scrollEnabled={false}
+          ListHeaderComponent={() => (
+            <TouchableOpacity style={styles.addButton}>
+              <Ionicons name="add" size={20} color="#6b7280" />
+            </TouchableOpacity>
+          )}
+          renderItem={({ item }) => renderFilterButton(item)}
         />
+        {/* User Created Games Section (moved up) */}
+        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#374151', marginLeft: 24, marginTop: 16 }}>ألعاب أنشأها المستخدمون</Text>
+        {createdGamesLoading ? (
+          <ActivityIndicator size="small" color="#60a5fa" style={{ marginVertical: 16 }} />
+        ) : createdGamesError ? (
+          <Text style={{ color: '#b91c1c', textAlign: 'center', marginVertical: 8 }}>{createdGamesError}</Text>
+        ) : (
+          <View style={{ paddingHorizontal: 24, paddingBottom: 16 }}>
+            {chunkArray(approvedCreatedGames, 2).map((row, rowIndex) => (
+              <View key={`created-row-${rowIndex}`} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                {row.map(item => (
+                  <GameCard key={item.id} game={item} hideStatus />
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+        {/* All Games Title and Grid (paginated) */}
+        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#374151', marginLeft: 24, marginTop: 8 }}>كل الألعاب</Text>
+        <View style={{ paddingHorizontal: 24, paddingBottom: 16 }}>
+          {chunkArray(allGames.slice(0, visibleGamesCount), 2).map((row, rowIndex) => (
+            <View key={`allgames-row-${rowIndex}`} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              {row.map(item => (
+                <GameCard key={item.id} game={item} />
+              ))}
+            </View>
+          ))}
+          {visibleGamesCount < allGames.length && (
+            <TouchableOpacity
+              style={{ alignSelf: 'center', marginTop: 12, backgroundColor: '#60a5fa', borderRadius: 20, paddingHorizontal: 32, paddingVertical: 10 }}
+              onPress={() => setVisibleGamesCount(count => Math.min(count + 6, allGames.length))}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>عرض المزيد</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -417,17 +583,6 @@ const styles = StyleSheet.create({
   },
   activeFilterButtonText: {
     color: 'white',
-  },
-  selectionCounter: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  counterText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
-    fontFamily: 'System',
   },
   categoriesContainer: {
     paddingHorizontal: 24,

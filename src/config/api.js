@@ -38,7 +38,7 @@ export const MOCK_API_DELAY = 1000;
 export const DEV_SETTINGS = {
   // Set this to true to use a test token (for development only)
   USE_TEST_TOKEN: true,
-  // Test token - using the fresh token you provided
+  // Test token - revert to previous working token
   TEST_TOKEN: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImY2MmMxYmNmLTMzNzgtNDYyYS1hODExLWRjZDA2NjMyNDE2NiIsInJvbGUiOiJ2aXNpdG9yIiwiZW1haWwiOiJ0ZXN0MTNAZ21haWwuY29tIiwiaWF0IjoxNzUwNTA5MTkzLCJleHAiOjE3NTIzMjM1OTN9.s1nP4OiXS6sMTBu7WitZp2DR1xw6MPt1ysgIOizKFaY',
   // Set this to true to test API without authentication (for development only)
   BYPASS_AUTH: false, // Using real authentication
