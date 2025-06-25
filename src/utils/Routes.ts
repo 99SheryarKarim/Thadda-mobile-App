@@ -22,7 +22,6 @@ export enum Routes {
   CreatedGamesDashboard = 'CreatedGamesDashboard',
   GameCreationScreen = 'GameCreationScreen',
   GameShowScreen = 'GameShowScreen',
-  APITestScreen = 'APITestScreen',
   
   // Game Categories
   GameCategories = 'GameCategories',
@@ -43,7 +42,6 @@ export type RootStackParams = {
   [Routes.CreatedGamesDashboard]: undefined;
   [Routes.GameCreationScreen]: undefined;
   [Routes.GameShowScreen]: { gameId: string };
-  [Routes.APITestScreen]: undefined;
   [Routes.GameCategories]: undefined;
 };
 
